@@ -47,6 +47,11 @@ try:
     print('[+] Authenticated!')
     print(chan.recv(1024))
     chan.send('Yeah i can see this')
+    while True:
+      command= input("Enter command: ").strip('\n')
+      chan.send(command)
+      results = chan.recv(1024)
+      print(results)
 
 except Exception as e:
     print('[-] Caught exception: '  + str(e))
