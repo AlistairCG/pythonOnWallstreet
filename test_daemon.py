@@ -33,8 +33,9 @@
  #
 #==============================================================================
 
-
-
+#csv doc creater
+import csv
+   
 import socket
 import paramiko
 import threading
@@ -42,6 +43,23 @@ import sys
 
 host_key = paramiko.RSAKey(filename='test_rsa.key')
 
+def handleRequest(connection):
+   if !os.path.isfile('peopleInfo.csv'):#check if file exists crerate it if it doesnt
+      with open('peopleInfo.csv','w',newLine='') as f:#first arg may change, its the csv file name
+         writer=csv.writer(f)
+         thewriter.writerow(['First Name','Last Name','IP','Location','Email','Domain','Postal Code') 
+   
+   data1=connection.recv()#here we'll recv the info being sent back by the client assuming its an array as of now
+   with open('peopleInfo.csv','w',newLine='') as f:#first arg may change, its the csv file name
+      writer=csv.writer(f)
+      for i in range():
+         for j in range(7):#any blank inputs are chaged to null
+            if (len(data[i][j])<1):
+               data[i][j]="null"
+         thewriter.writerow([data1[i][0],data1[i][1],data1[i][2],data1[i][3],data1[i][4],data1[i][5],data1[i][6]])
+         #Alistairs signUp function called here with each row of data
+         signUp(data1[i])
+      
 def getBinds():
     '''
     This function grabs the binding arguements for the connection
@@ -123,4 +141,4 @@ except Exception as e:
         t.close()
     except:
         pass
-    sys.exit(1)
+sys.exit(1)
