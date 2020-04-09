@@ -18,6 +18,7 @@ def soup():
     @Requires - BS4, Logger, requests, sys
     '''
     page  = requests.get("https://awcoupon.ca/en/register")
+    logger.info("======STARTING REGISTRATION======")
     if page.status_code != 200:
         logger.error("Cannot Locate the target coupon server")
         print("Cannot Locate the target server")
@@ -81,8 +82,11 @@ def soup():
     if(test_response.status_code != 200):
         logger.error("User could not be registered. Response code was: " + str(test_response.status_code))
         logger.error("Error was:" + test_response.text)
+        logger.info("======ENDING REGISTRATION======")
         return -1
+    
     logger.info("Registered the user! :p")
+    logger.info("======ENDING REGISTRATION======")
     return 0
    
    #=========End of soup=========#
