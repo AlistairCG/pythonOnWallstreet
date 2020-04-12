@@ -47,6 +47,8 @@ import paramiko
 import threading
 import sys
 import signal
+import subprocess
+from stub_sftp import StubServer,  StubSFTPServer
 
 host_key = paramiko.RSAKey(filename='test_rsa.key')
 logzero.logfile("soupLogFile.log", maxBytes=1e6, backupCount=2)
@@ -59,7 +61,7 @@ def parent():
    
 def grimReaper(signalNumber,frame):
    while True:
-        try`:
+        try:
             pid,status=os.waitpid(-1,os.WNOHANG)
         except OSError:
             return
@@ -95,13 +97,14 @@ class Daemon(object):
     def startService(self):
         try:
             sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
             sock.bind(getBinds())
             sock.listen(100)
             signal.signal(signal.SIGCHLD,grimReaper)
             print('[+] Listening for connection ...')
             while True:
                 try:
+                    sock.listen(100)
                     connection, clientAddr=sock.accept()
                 except IOError as e:
                     errorCode,message=e.args
@@ -129,7 +132,7 @@ class Daemon(object):
                     if pid==0:
                         child()
                         sock.close()
-                        startParamiko()
+                        startParamiko(connection)
                         connection.close()
                         os.exit(0)
                     else:
@@ -192,13 +195,9 @@ class Daemon(object):
 def startParamiko(client):
     try:
         t = paramiko.Transport(client)
-        try:
-            t.load_server_moduli()
-        except:
-            print('[-] (Failed to load moduli -- gex will be unsupported.)')
-            raise
         t.add_server_key(host_key)
-        server = Server()
+        t.set_subsystem_handler('sftp', paramiko.SFTPServer, StubSFTPServer)
+        server = StubServer()
         try:
             t.start_server(server=server)
         except paramiko.SSHException as x:
@@ -206,19 +205,10 @@ def startParamiko(client):
      
         chan = t.accept(20)
         print('[+] Authenticated!')
-        print(chan.recv(1024))
-        chan.send('Greetings from the server!')
         while True:
-            command= input("Enter command: ").strip('\n')
-            if (command == 'stop'):
-                chan.send('stop')
-                t.close()
-                sys.exit(0)
-            chan.send(command)
-            results = chan.recv(1024)
-            results.decode()
+            chan=t.accept(20)
             #handleData(results)
-            print(results)
+            print(chan)
     except Exception as e:
         print('[-] Caught exception: '  + str(e))
         try:
@@ -287,7 +277,7 @@ if __name__=="__main__":
     logzero.logfile("/tmp/rotating-logfile.log",maxBytes=1e6, backupCount=3, disableStderrLogger=True)
     daemonPid=os.getpid()
     logger.info(f"Started {daemonPid}")
-    daemon=MyDaemon('/tmp/daemon-example2.pid')
+    daemon=MyDaemon('/tmp/daemon-example3.pid')
     if len(sys.argv)==2:
         if 'start'==sys.argv[1]:
             daemon.start()
