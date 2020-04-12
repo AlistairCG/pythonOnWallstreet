@@ -168,7 +168,7 @@ class Daemon(object):
         self.run()
    
     def stop(self):
-        pid=get_pid(self.pidfile)
+        pid=getPid(self.pidfile)
         if not pid:
             msg="pidfile dont exist. deamon not running"
             print(msg%self.pidfile)

