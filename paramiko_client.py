@@ -154,7 +154,7 @@ def run():
         pid = os.fork()
     except OSError:
         sys.stderr.write("Could not create a child process\n")
-        continue
+    
 
     with open('info_bank.txt', 'w') as f:
         for item in infoBank:
@@ -173,7 +173,6 @@ def run():
         pid = os.fork()
     except OSError:
         sys.stderr.write("Could not create a child process\n")
-        continue
         
     if pid > 0: #parent
         os._exit(0)

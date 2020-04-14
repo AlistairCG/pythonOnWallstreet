@@ -47,7 +47,6 @@ import paramiko
 import threading
 import sys
 import signal
-import subprocess
 from stub_sftp import StubServer,  StubSFTPServer
 
 host_key = paramiko.RSAKey(filename='test_rsa.key')
@@ -80,13 +79,6 @@ def getPid(pidfile,default=None):
     except IOError:
         return default
 
-def initDaemon():
-	os.chdir('/')
-	try:
-		os.setsid()
-	except:
-		pass
-	os.umask(0)
 class Daemon(object):
     def __init__(self, pidfile,stdin='/dev/null',stdout='/dev/null',stderr='/dev/null'):
       self.stdin=stdin
@@ -96,64 +88,32 @@ class Daemon(object):
    
     def startService(self):
         try:
-            sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
-            sock.bind(getBinds())
-            sock.listen(100)
-            signal.signal(signal.SIGCHLD,grimReaper)
-            print('[+] Listening for connection ...')
-            while True:
-                try:
-                    sock.listen(100)
-                    connection, clientAddr=sock.accept()
-                except IOError as e:
-                    errorCode,message=e.args
-                    if errorCode==errno.EINTR:
-                        continue
-                    else:
-                        raise
-                try:           #first fork
-                    pid=os.fork()
-                    if pid==0:
-                        sock.close()
-                        startParamiko(connection)
-                        connection.close()
-                        os._exit(0)
-                    else:
-                        parent()
-                        connection.close()
-                except OSError as e:
-                    logger.info("First fork failed: %d (%s)"%(e.errno,e.strerror))
+            try:
+                if os.fork() > 0:
+                   raise SystemExit(0)
+            except OSError as e:
+                    logger.error("Unable to fork for fork #1")
             
-                initDaemon()
-            
-                try:        #2nd fork
-                    pid=os.fork()
-                    if pid==0:
-                        child()
-                        sock.close()
-                        startParamiko(connection)
-                        connection.close()
-                        os.exit(0)
-                    else:
-                        parent()
-                        connection.close()
-                except OSError as e:
-                   logger.info("2nd fork failed: %d (%s)"%(e.errno,e.strerror))
+            os.chdir('/')
+            try:
+                os.setsid()
+            except Exception as e:
+                logger.warning("Could not change the GID and/or UID - is this process privilaged?")
+                logger.warning(str(e))
                 
-                sys.stdout.flush()
-                sys.stderr.flush()
-                si=open(self.stdin,'r')
-                so=open(self.stdout,'a+')
-                se=open(self.stderr,'a+')
-                os.dup2(si.fileno(),sys.stdin.fileno())
-                os.dup2(so.fileno(),sys.stdout.fileno())
-                os.dup2(se.fileno(),sys.stderr.fileno())
+            # End Leadership by double forking
+            try:
+                if os.fork() > 0:
+                    raise SystemExit(0)
+            except OSError as e:
+                logger.error("Unable to fork for fork #2")
+         
+            sys.stdout.flush()
+            sys.stderr.flush()
                 
-                atexit.register(self.delpid)
-                pid=str(os.getpid())
-                with open(self.pidfile, 'w+') as f:
-                    f.write(pid)
+           # PID is to be removed when this daemon stops
+            atexit.register(lambda:  os.remove(self.pidFile))
+            signal.signal(signal.SIGTERM,  grimReaper)
         except Exception as e:
             print('[-] Listen/bind/accept failed: '+str(e))
             sys.exit(1)
@@ -190,37 +150,52 @@ class Daemon(object):
         self.start()
    
     def run(self):
-        raise NotImplementedError
+        print("Error - Invoked Base class RUN")
+            
    
 def startParamiko(client):
-    try:
-        t = paramiko.Transport(client)
-        t.add_server_key(host_key)
-        t.set_subsystem_handler('sftp', paramiko.SFTPServer, StubSFTPServer)
-        server = StubServer()
-        try:
-            t.start_server(server=server)
-        except paramiko.SSHException as x:
-            print('[-] SSH negotiation failed.')
-     
-        chan = t.accept(20)
-        print('[+] Authenticated!')
-        while True:
-            chan=t.accept(20)
-            #handleData(results)
-            print(chan)
-    except Exception as e:
-        print('[-] Caught exception: '  + str(e))
-        try:
-            t.close()
-        except:
-            pass
-        sys.exit(1)
+  return -1
 
+def endConnection(sigNo, frames):
+    '''
+    This function handles the cleanup of zombie children after their work has been completed
+    param - sigNo 
+    param - frames
+    return - exit state
+    '''
+    while True:
+        try:
+            pid, status = os.waitpid(-1, os.WNOHANG) #any child must be ended
+        except Exception:
+            return -1
+        if pid == 0:
+            return 1
+        
 class MyDaemon(Daemon):
    def run(self):
-      while True:
-         time.sleep(1)
+    client = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+    client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    client.bind(getBinds())
+    client.listen(200)
+    logger.info(f"Daemon Started and ready for IPv6 service on localhost using port 9000...")
+
+    signal.signal(signal.SIGCHLD,endConnection) #estabish a zombie child kille        
+    while True:
+            try:
+                clientCon, clientAddr = client.accept()
+            except Exception:
+                logger.error("There was a problem accepting the connection, please try again")
+            pid = os.fork()
+            if pid == 0:
+                #I am the child connection
+                client.close() # do not listen to the parent
+                handle(clientCon)
+                clientCon.close()
+                os._exit(0) #children are returning success to parent
+            else:
+                #I am a parent connection
+                clientCon.close()
+
     
 #def handleData(data):
    # if os.path.exists("peopleInfo.csv"):
