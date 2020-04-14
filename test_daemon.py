@@ -32,7 +32,7 @@
  #   Classification: N/A
  #
 #==============================================================================
-
+import requests
 import csv
 import errno
 import random
@@ -47,17 +47,13 @@ import paramiko
 import threading
 import sys
 import signal
+import json
 import subprocess
 from stub_sftp import StubServer,  StubSFTPServer
 
 host_key = paramiko.RSAKey(filename='test_rsa.key')
 logzero.logfile("soupLogFile.log", maxBytes=1e6, backupCount=2)
-def child():
-    childWrites="in child"
-    logger.info(f"Child: {os.getpid()} {childWrites} ")
 
-def parent():
-    logger.info(f"Parent: {os.getpid()} is logging")
    
 def grimReaper(signalNumber,frame):
    while True:
@@ -72,13 +68,6 @@ def grimReaper(signalNumber,frame):
 def exitErr(msg,status=1):
    print(msg)
    sys.exit(status)
-   
-def getPid(pidfile,default=None):
-    try:
-        with open(pidfile) as f:
-            return int(f.read().strip())
-    except IOError:
-        return default
 
 def initDaemon():
 	os.chdir('/')
@@ -95,96 +84,71 @@ class Daemon(object):
       self.pidfile=pidfile
    
     def startService(self):
-        try:
-            sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
-            sock.bind(getBinds())
-            sock.listen(100)
-            signal.signal(signal.SIGCHLD,grimReaper)
-            print('[+] Listening for connection ...')
-            while True:
-                try:
-                    sock.listen(100)
-                    connection, clientAddr=sock.accept()
-                except IOError as e:
-                    errorCode,message=e.args
-                    if errorCode==errno.EINTR:
-                        continue
-                    else:
-                        raise
-                try:           #first fork
-                    pid=os.fork()
-                    if pid==0:
-                        sock.close()
-                        startParamiko(connection)
-                        connection.close()
-                        os._exit(0)
-                    else:
-                        parent()
-                        connection.close()
-                except OSError as e:
-                    logger.info("First fork failed: %d (%s)"%(e.errno,e.strerror))
+        try:           #first fork
+            if os.fork()>0:
+                raise SystemExit(0)
+        except OSError as e:
+            logger.info("First fork failed: %d (%s)"%(e.errno,e.strerror))
             
-                initDaemon()
+        initDaemon()
             
-                try:        #2nd fork
-                    pid=os.fork()
-                    if pid==0:
-                        child()
-                        sock.close()
-                        startParamiko(connection)
-                        connection.close()
-                        os.exit(0)
-                    else:
-                        parent()
-                        connection.close()
-                except OSError as e:
-                   logger.info("2nd fork failed: %d (%s)"%(e.errno,e.strerror))
+        try:        #2nd fork
+            if os.fork()>0:
+                raise SystemExit(0)
+        except OSError as e:
+            logger.info("2nd fork failed: %d (%s)"%(e.errno,e.strerror))
                 
-                sys.stdout.flush()
-                sys.stderr.flush()
-                si=open(self.stdin,'r')
-                so=open(self.stdout,'a+')
-                se=open(self.stderr,'a+')
-                os.dup2(si.fileno(),sys.stdin.fileno())
-                os.dup2(so.fileno(),sys.stdout.fileno())
-                os.dup2(se.fileno(),sys.stderr.fileno())
+        sys.stdout.flush()
+        sys.stderr.flush()
+        si=open(self.stdin,'r')
+        so=open(self.stdout,'a+')
+        se=open(self.stderr,'a+')
+        os.dup2(si.fileno(),sys.stdin.fileno())
+        os.dup2(so.fileno(),sys.stdout.fileno())
+        os.dup2(se.fileno(),sys.stderr.fileno())
+        
+        pid=str(os.getpid())
+        with open(self.pidfile, 'w+') as f:
+            f.write(pid)
+        
+        atexit.register(lambda:os.remove(self.pidfile))
+        sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+        sock.bind(getBinds())
+        sock.listen(100)
+        signal.signal(signal.SIGCHLD,grimReaper)
+        print('[+] Listening for connection ...')
+        while True:
+            try:
+                conn, addr=sock.accept()
+            except Exception:
+                print("problem accepting connection")
                 
-                atexit.register(self.delpid)
-                pid=str(os.getpid())
-                with open(self.pidfile, 'w+') as f:
-                    f.write(pid)
-        except Exception as e:
-            print('[-] Listen/bind/accept failed: '+str(e))
-            sys.exit(1)
-    def delpid(self):
-        os.remove(self.pidfile)
+            pid=os.fork()
+            if pid==0:
+                sock.close()
+                handleData()
+                conn.close()
+                os._exit(0)
+            else:
+                conn.close()
+    
     
     def start(self):
-        if getPid(self.pidfile):
+        if os.path.exists(self.pidfile):
             msg="Pidfile %s already exists. daemon already running"
             exitErr(msg%self.pidfile)
         self.startService()
         self.run()
    
     def stop(self):
-        pid=get_pid(self.pidfile)
-        if not pid:
-            msg="pidfile dont exist. deamon not running"
-            print(msg%self.pidfile)
-            return
-        try:
-            while True:
-                os.kill(pid, SIGTERM)
-                time.sleep(0.1)
-        except OSError as e:
-            error=e.strerror
-            if 'No such process' in error:
-                if os.path.exists(self.pidfile):
-                    os.remove(self.pidfile)
-            else:
-                exitErr(error)
-
+        if os.path.exists(self.pidfile):
+            with open(self.pidfile) as f:
+                os.kill(int(f.read()), signal.SIGTERM)
+                sys.exit(0)
+        else:
+            sys.exit(0)
+    
     def restart(self):
         self.stop()
         self.start()
@@ -207,8 +171,9 @@ def startParamiko(client):
         print('[+] Authenticated!')
         while True:
             chan=t.accept(20)
-            #handleData(results)
+            handleData()
             print(chan)
+            
     except Exception as e:
         print('[-] Caught exception: '  + str(e))
         try:
@@ -222,19 +187,24 @@ class MyDaemon(Daemon):
       while True:
          time.sleep(1)
     
-#def handleData(data):
-   # if os.path.exists("peopleInfo.csv"):
-      #  with open('peopleInfo.csv','w',newLine='') as f:#first arg may change, its the csv file name
-        #    writer=csv.writer(f)
-          #  thewriter.writerow(['First Name','Last Name','IP','Location','Email','Domain','Postal Code')
-        #here we'll recv the info being sent back by the client assuming its an array as of now
+def handleData():
+    file=open('transported.txt','r')#first arg may change, its the csv file name
+    info=file.read()
+    file.close()
+    file=open("peoplesInfo.csv", 'a', newline='')
+    file.write(info)
+    file.close
+    response=requests.get("http://ip-api.com/json/99.247.166.240")
+    print(response.status_code)
+    txt=json.dumps(response.json())
+    print(txt)
     #with open('peopleInfo.csv','w',newLine='') as f:#first arg may change, its the csv file name
-        #writer=csv.writer(f)
+    
         #for i in range():
-            #for j in range(7):#any blank inputs are chaged to null
-               # if (len(data[i][j])<1):
-                    #data[i][j]="null"
-            #thewriter.writerow([data1[i][0],data1[i][1],data1[i][2],data1[i][3],data1[i][4],data1[i][5],data1[i][6]])
+          #  for j in range(7):#any blank inputs are chaged to null
+             #   if (len(data[i][j])<1):
+               #     data[i][j]="null"
+                #thewriter.writerow([data1[i][0],data1[i][1],data1[i][2],data1[i][3],data1[i][4],data1[i][5],data1[i][6]])
             #Alistairs signUp function called here with each row of data
             #signUp(data1[i])
 
@@ -277,7 +247,7 @@ if __name__=="__main__":
     logzero.logfile("/tmp/rotating-logfile.log",maxBytes=1e6, backupCount=3, disableStderrLogger=True)
     daemonPid=os.getpid()
     logger.info(f"Started {daemonPid}")
-    daemon=MyDaemon('/tmp/daemon-example3.pid')
+    daemon=MyDaemon('/tmp/daemon-example24.pid')
     if len(sys.argv)==2:
         if 'start'==sys.argv[1]:
             daemon.start()
