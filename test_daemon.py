@@ -26,7 +26,7 @@
  #             
  #   Required Features Not Included: N/A
  #
- #   Known Bugs:  N/A 
+ #   Known Bugs:  Children spawned from handling clients do not appear to be handeld by the sigChild terminator function and remain as zombies
  #      
  #
  #   Classification: N/A
