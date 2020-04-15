@@ -220,6 +220,7 @@ class MyDaemon(Daemon):
             traceback.print_exc()
             sys.exit(1)
     while True:
+        print("Waiting...")
         client, addr = sock.accept()
 
         print("Got a connection!")
@@ -240,14 +241,14 @@ class MyDaemon(Daemon):
         print("Authenticated!")
         print("Handling this connection...")
         pid = os.fork()
-        #if pid == 0:
+        if pid == 0:
             #child
-        handle(clientCon)
-        clientCon.close()
-         #   os._exit(0)
-       # else:
+            handle(clientCon)
+            clientCon.close()
+            os._exit(0)
+        else:
             #parent
-          #  clientCon.close()
+            clientCon.close()
 
 def handle(conn):
     
@@ -270,6 +271,8 @@ def handle(conn):
             #thewriter.writerow([data1[i][0],data1[i][1],data1[i][2],data1[i][3],data1[i][4],data1[i][5],data1[i][6]])
             #Alistairs signUp function called here with each row of data
             #signUp(data1[i])
+            
+    print("Done!")
     return 0
     
     
