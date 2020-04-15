@@ -312,36 +312,34 @@ class MyDaemon(Daemon):
             sys.exit(1)
     while True:
         print("Waiting...")
+
         client, addr = sock.accept()
-
-        print("Got a connection!")
-        t = paramiko.Transport(client)
-        
-        t.add_server_key(host_key)
-        server = Server()
-        try:
-            t.start_server(server=server)
-        except paramiko.SSHException:
-            print("*** SSH negotiation failed.")
-            sys.exit(1)
-        # wait for auth
-        clientCon = t.accept(20)
-        if clientCon is None:
-            print("*** No channel ***")
-            sys.exit(1)
-        print("Authenticated!")
-        print("Handling this connection...")
-
         pid = os.fork()
-        #if pid == 0:
-            #child
-        handle(clientCon)
-        clientCon.close()
-        client.close()
-        os._exit(0)
-        #else:
-          #  parent
-           # clientCon.close()
+        if pid == 0:
+            print("Got a connection!")
+            t = paramiko.Transport(client)
+            
+            t.add_server_key(host_key)
+            server = Server()
+            try:
+                t.start_server(server=server)
+            except paramiko.SSHException:
+                print("*** SSH negotiation failed.")
+                sys.exit(1)
+            # wait for auth
+            clientCon = t.accept(20)
+            if clientCon is None:
+                print("*** No channel ***")
+                sys.exit(1)
+            print("Authenticated!")
+            print("Handling this connection...")
+
+            handle(clientCon)
+            clientCon.close()
+            client.close()
+            os._exit(0)
+        else:
+            print("I am alive")
 
 def handle(conn):
     
