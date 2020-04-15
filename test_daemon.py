@@ -351,7 +351,6 @@ def handle(conn):
     request = conn.recv(1024)
     logger.info("Client said this ->" + str(request))
     print("Client said this ->" + str(request))
-    print(str(request))
 
    
    # if os.path.exists("peopleInfo.csv"):

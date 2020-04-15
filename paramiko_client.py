@@ -142,8 +142,6 @@ def sendFile(dataFile,  keyLoc, filename):
             client.close()
         sys.exit(0)
     
-    print("Ready....")
-    
     
     if filename == 'infobank.txt':
         print(filename)
