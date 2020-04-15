@@ -52,7 +52,7 @@ def fetchSFTP():
         sftp = 0
         client = 0
         host = "::1"
-        port = 9000
+        port = 9500
         usr,  pwd = 'root', 'toor'
         
         key = paramiko.RSAKey(filename='test_rsa.key')
@@ -61,14 +61,12 @@ def fetchSFTP():
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         client.connect(host,port, usr, pwd,  key)
         
-        sftp = client.open_sftp()
-        sftp.sshclient = client
-        print("Connected!")
-        #TEST FILE - TODO REMOVE
-        file = open("mytestfile.txt",  "a")
-        file.write("Overwatch Sucks")
-        file.close()
-        sftp.put("mytestfile.txt",  "transported.txt")
+        chan = client.get_transport().open_session()
+
+        chan.send('Hello? Yes this is client calling via SSH!')
+        print(chan.recv(1024))
+      
+
         
         return sftp
     except Exception as e:

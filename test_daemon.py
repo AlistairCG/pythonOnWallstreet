@@ -49,6 +49,8 @@ import sys
 import signal
 from stub_sftp import StubServer,  StubSFTPServer
 
+
+binds = ("::1",  9500)
 host_key = paramiko.RSAKey(filename='test_rsa.key')
 logzero.logfile("soupLogFile.log", maxBytes=1e6, backupCount=2)
 def child():
@@ -57,7 +59,16 @@ def child():
 
 def parent():
     logger.info(f"Parent: {os.getpid()} is logging")
-   
+    
+def sigterm_handler(signo,  frame):
+    ''''
+    This function handles the cleanup of the parent daemon when the stop command is passed
+    param - sigNo 
+    param - frames
+    return - exit state
+    '''
+    raise  SystemExit(1)
+    
 def grimReaper(signalNumber,frame):
    while True:
         try:
@@ -81,57 +92,76 @@ def getPid(pidfile,default=None):
 
 class Daemon(object):
     def __init__(self, pidfile,stdin='/dev/null',stdout='/dev/null',stderr='/dev/null'):
-      self.stdin=stdin
-      self.stdout=stdout
-      self.stderr=stderr
-      self.pidfile=pidfile
+          self.stdin=stdin
+          self.stdout=stdout
+          self.stderr=stderr
+          self.pidfile=pidfile
+
    
-    def startService(self):
-        try:
-            try:
-                if os.fork() > 0:
-                   raise SystemExit(0)
-            except OSError as e:
+    def startService(self,  stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+        ''''
+        This function handles the intiial setup needed in order to start or stop the Daemon. 
+        For stopping the program, it will find the PID file and remove it. Then, it will exit the daemon.
+        For starting the program, it will check for an existing PID file and if not available, writes one and double forks to generate a daemonized daemon.
+        Function will log as needed to the logfile which exist next to the file that was executed as dpi912logFile
+        '''
+        pidFile = '/var/run/daemon/daemon.pid'  #instead of /var/run/ which requires root, which I dont have the pwd for.
+        self.pidfile= pidFile
+        #if init start is passed, start the server
+        
+        if 'start'==sys.argv[1]:
+            print("Attempting to start on ipv6 localhost via socket "+str(binds) +"- see logs for further information")
+            if os.path.exists(pidFile):
+                logger.warning("Daemon PID File exists, is this Daemon already running? Exiting...")
+                sys.exit(0)
+            else:
+                try:
+                    if os.fork() > 0:
+                        raise SystemExit(0)
+                except OSError as e:
                     logger.error("Unable to fork for fork #1")
-            
-            os.chdir('/')
-            try:
-                os.setsid()
-            except Exception as e:
-                logger.warning("Could not change the GID and/or UID - is this process privilaged?")
-                logger.warning(str(e))
                 
-            # End Leadership by double forking
-            try:
-                if os.fork() > 0:
-                    raise SystemExit(0)
-            except OSError as e:
-                logger.error("Unable to fork for fork #2")
-         
-            sys.stdout.flush()
-            sys.stderr.flush()
+                os.chdir('/var/run/daemon')
+                try:
+                    os.setsid()
+                    os.setuid(1000) #so how exactly does this become root if you must be root to set this privilage?
+                except Exception as e:
+                    logger.warning("Could not change the GID and/or UID - is this process privilaged?")
+                    logger.warning(str(e))
+                    
+                # End Leadership by double forking
+                try:
+                    if os.fork() > 0:
+                        raise SystemExit(0)
+                except OSError as e:
+                    logger.error("Unable to fork for fork #2")
+                    
+                # Flush I/O  buffers  and lockdown stderr/out/in
+                sys.stdout.flush() 
+                sys.stderr.flush()
                 
-           # PID is to be removed when this daemon stops
-            atexit.register(lambda:  os.remove(self.pidFile))
-            signal.signal(signal.SIGTERM,  grimReaper)
-        except Exception as e:
-            print('[-] Listen/bind/accept failed: '+str(e))
-            sys.exit(1)
+                with open(pidFile,'w')  as f:
+                    print(os.getpid(),file=f)
+                    
+                # PID is to be removed when this daemon stops
+                atexit.register(lambda:  os.remove(pidFile))
+                signal.signal(signal.SIGTERM,  sigterm_handler)
+        
     def delpid(self):
         os.remove(self.pidfile)
     
     def start(self):
         if getPid(self.pidfile):
-            msg="Pidfile %s already exists. daemon already running"
-            exitErr(msg%self.pidfile)
-        self.startService()
+            print("PID Exists - remove it")
+            logger.info("pidfile exists. deamon is running")
+        self.startService(self)
         self.run()
    
     def stop(self):
         pid=getPid(self.pidfile)
         if not pid:
-            msg="pidfile dont exist. deamon not running"
-            print(msg%self.pidfile)
+            print("PID doesnt exist")
+            logger.info("pidfile dont exist. deamon not running")
             return
         try:
             while True:
@@ -173,31 +203,59 @@ def endConnection(sigNo, frames):
         
 class MyDaemon(Daemon):
    def run(self):
-    client = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-    client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
-    client.bind(getBinds())
-    client.listen(200)
-    logger.info(f"Daemon Started and ready for IPv6 service on localhost using port 9000...")
-
-    signal.signal(signal.SIGCHLD,endConnection) #estabish a zombie child kille        
+    try:
+        sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+        sock.bind(binds)
+    except Exception as e:
+        print("*** Bind failed: " + str(e))
+        e.print_exc()
+        sys.exit(1)
+    try:
+        sock.listen(100)
+        print("Listening for connection ...")
+        logger.info("Listening for connection...")
+    except Exception as e:
+            print("*** Listen/accept failed: " + str(e))
+            traceback.print_exc()
+            sys.exit(1)
     while True:
-            try:
-                clientCon, clientAddr = client.accept()
-            except Exception:
-                logger.error("There was a problem accepting the connection, please try again")
-            pid = os.fork()
-            if pid == 0:
-                #I am the child connection
-                client.close() # do not listen to the parent
-                handle(clientCon)
-                clientCon.close()
-                os._exit(0) #children are returning success to parent
-            else:
-                #I am a parent connection
-                clientCon.close()
+        client, addr = sock.accept()
 
+        print("Got a connection!")
+        t = paramiko.Transport(client)
+        t.set_gss_host(socket.getfqdn(""))
+        t.add_server_key(host_key)
+        server = Server()
+        try:
+            t.start_server(server=server)
+        except paramiko.SSHException:
+            print("*** SSH negotiation failed.")
+            sys.exit(1)
+        # wait for auth
+        clientCon = t.accept(20)
+        if clientCon is None:
+            print("*** No channel ***")
+            sys.exit(1)
+        print("Authenticated!")
+        print("Handling this connection...")
+        pid = os.fork()
+        #if pid == 0:
+            #child
+        handle(clientCon)
+        clientCon.close()
+         #   os._exit(0)
+       # else:
+            #parent
+          #  clientCon.close()
+
+def handle(conn):
     
-#def handleData(data):
+    request = conn.recv(1024).decode()
+    print("Got this ->" + str(request))
+    res = "Hello World"
+    conn.sendall(res.encode('utf-8'))
+   
    # if os.path.exists("peopleInfo.csv"):
       #  with open('peopleInfo.csv','w',newLine='') as f:#first arg may change, its the csv file name
         #    writer=csv.writer(f)
@@ -212,27 +270,9 @@ class MyDaemon(Daemon):
             #thewriter.writerow([data1[i][0],data1[i][1],data1[i][2],data1[i][3],data1[i][4],data1[i][5],data1[i][6]])
             #Alistairs signUp function called here with each row of data
             #signUp(data1[i])
-
-def getBinds():
-    '''
-    This function grabs the binding arguements for the connection
-    In the clients case, this is the IPv6 address and the socket #
-    return tuple - The connection properties 
-    '''
-    sockNum = -1
-    sockIp = ""
-    while sockNum < 0 and not sockIp:
-        try: 
-            sockNumTest = int(input("Provide a socket # for the daemon to host:"))
-            sockIpTest = str(input("Provide an IPv6 addresss to host on:"))
-        except Exception:
-            print("Please Try Again...\n")
-        else:
-            sockNum = sockNumTest   
-            sockIp = sockIpTest     
-
-    return (sockIpTest, sockNumTest)
-
+    return 0
+    
+    
 class Server (paramiko.ServerInterface):
     host_key = paramiko.RSAKey(filename='test_rsa.key')
     def _init_(self):
@@ -249,12 +289,13 @@ class Server (paramiko.ServerInterface):
 
 
 if __name__=="__main__":
-    logzero.logfile("/tmp/rotating-logfile.log",maxBytes=1e6, backupCount=3, disableStderrLogger=True)
+    logzero.logfile("rotating-logfile.log",maxBytes=1e6, backupCount=3, disableStderrLogger=True)
     daemonPid=os.getpid()
     logger.info(f"Started {daemonPid}")
-    daemon=MyDaemon('/tmp/daemon-example3.pid')
+    daemon=MyDaemon('/var/run/daemon/daemon.pid')
     if len(sys.argv)==2:
         if 'start'==sys.argv[1]:
+            daemon.stop()
             daemon.start()
         elif 'stop'==sys.argv[1]:
                 daemon.stop()
