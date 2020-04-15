@@ -1,7 +1,7 @@
 # test_daemon.py
 
 #==============================================================================
- #   Assignment:  Major Project - Tunelling Milestone 1
+ #   Assignment:  Major Project - A&W Coupon App
  #
  #       Author:  Alistair Godwin, Micheal Sciortino, Francesso Losi
  #     Language:  Python 3
@@ -44,15 +44,103 @@ from logzero import logger
 from signal import SIGTERM
 import socket
 import paramiko
+from bs4 import BeautifulSoup
+import requests
 import threading
 import sys
 import signal
-from stub_sftp import StubServer,  StubSFTPServer
+
 
 
 binds = ("::1",  9500)
 host_key = paramiko.RSAKey(filename='test_rsa.key')
 logzero.logfile("soupLogFile.log", maxBytes=1e6, backupCount=2)
+
+def soup(dataLine):
+    ''''
+    This function represents the automated registration component of the application
+    It will scrape the target webpage and will sign the user up for it while imitiating a browser.
+    The scraper will pretent to be a browser by using a header that captures a session cookie and adds a token + session key to the payload
+    Data that is not received will be randomly generated(except for the pwd = "P@ssw0rd" and email)
+    
+    @Author: Alistair
+    @Date: April 8th 2020
+    
+    @param - dataLine list - the list of user provided data to submit
+    @Requires - BS4, Logger, requests, sys
+    '''
+    page  = requests.get("https://awcoupon.ca/en/register")
+    logger.info("======STARTING REGISTRATION======")
+    if page.status_code != 200:
+        logger.error("Cannot Locate the target coupon server")
+        print("Cannot Locate the target server")
+        return -1 #Failed to make some soup
+    
+    soup = BeautifulSoup(page.content,  'html.parser')
+    logger.info("Found target! Extracting Form...")
+    
+    #Extract the target registration form
+    token = (soup.find('input',  {'name' : '_token'}).get('value'))
+    session_key = (soup.find('input',  {'name' : '_session_key'}).get('value'))
+    
+    #The operational target
+    targetURL = "https://awcoupon.ca/en/register"
+    
+    #Find the cookies of a real browser
+    cookieJar = page.cookies
+    cookie_ = page.cookies['october_session']
+    cookie = 'october_session=' + cookie_
+    logger.info("Setting Target Cookie as:" + cookie) #I'm a real browser now
+    
+    #Header(What data must be imitated)
+    headers = {
+        'Host' : 'awcoupon.ca', 
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0', 
+        'Accept': '*/*', 
+        'Accept-Language': 'en-US,en;q=0.5', 
+        'Accept-Encoding' :'gzip, deflate, br', 
+        'Referer': 'https://awcoupon.ca/en/register', 
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 
+        'X-OCTOBER-REQUEST-HANDLER': 'onRegister', 
+        'X-OCTOBER-REQUEST-PARTIALS': '', 
+        'X-OCTOBER-REQUEST-FLASH': '1', 
+        'X-Requested-With': 'XMLHttpRequest', 
+        'Content-Length': '281', 
+        'Cookie': cookie, 
+        'Connection': 'keep-alive', 
+    }
+    #POST response form (data is brough to the target)
+    #TODO - Data needs to be sent here
+    response = {
+    '_session_key' :  session_key, #yanked from the webpage
+    '_token' : token,  #yanked from the webpage
+    'name': 'ABC', 
+    'email':'abc123@ualmail.com', 
+    'profile[postal_code]': 'k5g2p1', 
+    'password': 'P@ssw0rd', 
+    'password_confirmation': 'P@ssw0rd', 
+    'profile[user_region]' : '', 
+    'profile[lang]': 'en'
+    
+    }
+    logger.info("Header & Response created!")
+    
+    #POST reqeust to target
+    logger.info("Attempting registration...")
+    test_response = requests.post(targetURL,  data=response,  headers=headers,  cookies=cookieJar)
+    
+    #Fetch result
+    result = BeautifulSoup(test_response.text,  'html.parser')
+    #200 = OK(probably) and anything else needs logged.
+    if(test_response.status_code != 200):
+        logger.error("User could not be registered. Response code was: " + str(test_response.status_code))
+        logger.error("Error was:" + test_response.text)
+        logger.info("======ENDING REGISTRATION======")
+        return -1
+    
+    logger.info("Registered the user! :p")
+    logger.info("======ENDING REGISTRATION======")
+    return 0
 def child():
     childWrites="in child"
     logger.info(f"Child: {os.getpid()} {childWrites} ")
@@ -70,6 +158,7 @@ def sigterm_handler(signo,  frame):
     raise  SystemExit(1)
     
 def grimReaper(signalNumber,frame):
+    
    while True:
         try:
             pid,status=os.waitpid(-1,os.WNOHANG)
@@ -185,7 +274,7 @@ class Daemon(object):
    
 def startParamiko(client):
   return -1
-
+  
 def endConnection(sigNo, frames):
     '''
     This function handles the cleanup of zombie children after their work has been completed
@@ -208,6 +297,7 @@ class MyDaemon(Daemon):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         sock.bind(binds)
         signal.signal(signal.SIGCHLD,endConnection) #estabish a zombie child killer
+        
     except Exception as e:
         print("*** Bind failed: " + str(e))
         e.print_exc()
@@ -247,6 +337,7 @@ class MyDaemon(Daemon):
             #child
             handle(clientCon)
             clientCon.close()
+            client.close()
             os._exit(0)
         else:
             #parent
