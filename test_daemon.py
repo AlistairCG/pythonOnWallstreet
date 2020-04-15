@@ -317,7 +317,6 @@ class MyDaemon(Daemon):
         print("Got a connection!")
         t = paramiko.Transport(client)
         
-        t.set_gss_host(socket.getfqdn(""))
         t.add_server_key(host_key)
         server = Server()
         try:
@@ -332,24 +331,30 @@ class MyDaemon(Daemon):
             sys.exit(1)
         print("Authenticated!")
         print("Handling this connection...")
+
         pid = os.fork()
-        if pid == 0:
+        #if pid == 0:
             #child
-            handle(clientCon)
-            clientCon.close()
-            client.close()
-            os._exit(0)
-        else:
-            #parent
-            clientCon.close()
+        handle(clientCon)
+        clientCon.close()
+        client.close()
+        os._exit(0)
+        #else:
+          #  parent
+           # clientCon.close()
 
 def handle(conn):
     
-    request = conn.recv(1024).decode()
+    chan = conn #begins comms
+    request = chan.recv(1024)
     logger.info("Client said this ->" + str(request))
+    print("Client said this ->" + str(request))
+    
+    request = conn.recv(1024)
+    logger.info("Client said this ->" + str(request))
+    print("Client said this ->" + str(request))
     print(str(request))
-    res = "Hello World"
-    conn.sendall(res.encode('utf-8'))
+
    
    # if os.path.exists("peopleInfo.csv"):
       #  with open('peopleInfo.csv','w',newLine='') as f:#first arg may change, its the csv file name
@@ -367,6 +372,11 @@ def handle(conn):
             #signUp(data1[i])
             
     print("Done!")
+    try:
+        conn.close()
+    except:
+        pass
+        
     return 0
     
     

