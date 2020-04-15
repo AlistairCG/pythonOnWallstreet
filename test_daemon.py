@@ -207,6 +207,7 @@ class MyDaemon(Daemon):
         sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         sock.bind(binds)
+        signal.signal(signal.SIGCHLD,endConnection) #estabish a zombie child killer
     except Exception as e:
         print("*** Bind failed: " + str(e))
         e.print_exc()
@@ -225,6 +226,7 @@ class MyDaemon(Daemon):
 
         print("Got a connection!")
         t = paramiko.Transport(client)
+        
         t.set_gss_host(socket.getfqdn(""))
         t.add_server_key(host_key)
         server = Server()
@@ -253,7 +255,8 @@ class MyDaemon(Daemon):
 def handle(conn):
     
     request = conn.recv(1024).decode()
-    print("Got this ->" + str(request))
+    logger.info("Client said this ->" + str(request))
+    print(str(request))
     res = "Hello World"
     conn.sendall(res.encode('utf-8'))
    
@@ -292,7 +295,7 @@ class Server (paramiko.ServerInterface):
 
 
 if __name__=="__main__":
-    logzero.logfile("rotating-logfile.log",maxBytes=1e6, backupCount=3, disableStderrLogger=True)
+    logzero.logfile("/home/lab/sandbox/serverLogs.log",maxBytes=1e6, backupCount=3, disableStderrLogger=True)
     daemonPid=os.getpid()
     logger.info(f"Started {daemonPid}")
     daemon=MyDaemon('/var/run/daemon/daemon.pid')
