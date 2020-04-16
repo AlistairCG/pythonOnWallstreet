@@ -415,7 +415,7 @@ class Server (paramiko.ServerInterface):
 
 # MAIN #
 if __name__=="__main__":
-    logzero.logfile("/home/lab/sandbox/serverLogs.log",maxBytes=1e6, backupCount=3, disableStderrLogger=True)
+    logzero.logfile(cwd+"/serverLogs.log",maxBytes=1e6, backupCount=3, disableStderrLogger=True)
     daemonPid=os.getpid()
     logger.info(f"Started {daemonPid}")
     daemon=MyDaemon('/var/run/daemon/daemon.pid')
