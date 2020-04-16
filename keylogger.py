@@ -23,7 +23,7 @@ def main():
     parser.add_argument(
             '--clean-file',
             action='store_true',
-            default=False,
+            default=True,
             help='Clear the log file on startup.Default is No',
             )
     parser.add_argument(

