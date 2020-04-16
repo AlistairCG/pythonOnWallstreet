@@ -1,0 +1,19 @@
+Required Libraries/Dependencies:
+0) Pip 
+(pip install <library>)
+
+1) Logzero
+2) Paramiko
+3) Beautiful Soup (BS4)
+4) pyxhook
+
+
+Environment Requirements:
+1) Create the following folder for the daemon.pid as super user
+ mkdir /var/run/daemon
+2) Chown the file
+ chown 1000 (aka lab) daemon
+3) chmod 750 daemon 
+
+Code Repo(Public):
+https://github.com/AlistairCG/pythonOnWallstreet/tree/final
