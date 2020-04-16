@@ -1,0 +1,6 @@
+{
+    "python.pythonPath": "B:\\Python3\\python.exe",
+    "python.envFile": ".env",
+    "python.linting.enabled": true,
+    "python.jediEnabled": true
+}
