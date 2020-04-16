@@ -57,7 +57,10 @@ import signal
 
 
 binds = ("::1",  9500)
-host_key = paramiko.RSAKey(filename='test_rsa.key')
+cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
+keyLoc = cwd
+keyLoc +=  '/test_rsa.key'
+host_key = paramiko.RSAKey(filename=keyLoc)
 logzero.logfile("soupLogFile.log", maxBytes=1e6, backupCount=2)
 
 def soup(email='unknown',  firstName='friendly',  lastName='user',  postalCode = 'k7k2k1'):
@@ -191,7 +194,12 @@ class Daemon(object):
           self.stdout=stdout
           self.stderr=stderr
           self.pidfile=pidfile
-
+          
+    def delpid(self):
+        try:
+            os.remove(self.pidfile)
+        except Exception:
+            pass
    
     def startService(self,  stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
         ''''
@@ -238,13 +246,12 @@ class Daemon(object):
                 with open(pidFile,'w')  as f:
                     print(os.getpid(),file=f)
                     
+                self.pidfile= pidFile
                 # PID is to be removed when this daemon stops
-                atexit.register(lambda:  os.remove(pidFile))
+                atexit.register(lambda:  self.delpid())
                 signal.signal(signal.SIGTERM,  sigterm_handler)
         
-    def delpid(self):
-        os.remove(self.pidfile)
-    
+
     def start(self):
         if getPid(self.pidfile):
             print("PID Exists - remove it")
@@ -347,8 +354,7 @@ class MyDaemon(Daemon):
             clientCon.close()
             client.close()
             os._exit(0)
-        else:
-            print("I am alive")
+
 
 def handle(conn): #
     chan = conn
@@ -390,9 +396,10 @@ def handle(conn): #
         pass
         
     return 0
-
+    
+    
 class Server (paramiko.ServerInterface):
-    host_key = paramiko.RSAKey(filename='test_rsa.key')
+    host_key = paramiko.RSAKey(filename=keyLoc)
     def _init_(self):
         self.event = threading.Event()
     def check_channel_request(self, kind, chanid):
