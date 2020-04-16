@@ -60,7 +60,7 @@ binds = ("::1",  9500)
 host_key = paramiko.RSAKey(filename='test_rsa.key')
 logzero.logfile("soupLogFile.log", maxBytes=1e6, backupCount=2)
 
-def soup(dataLine):
+def soup(email='unknown',  firstName='friendly',  lastName='user',  postalCode = 'k7k2k1'):
     ''''
     This function represents the automated registration component of the application
     It will scrape the target webpage and will sign the user up for it while imitiating a browser.
@@ -73,6 +73,9 @@ def soup(dataLine):
     @param - dataLine list - the list of user provided data to submit
     @Requires - BS4, Logger, requests, sys
     '''
+    if email == 'unknown':
+        logger.error("Required arguement email not provided")
+        return -1
     page  = requests.get("https://awcoupon.ca/en/register")
     logger.info("======STARTING REGISTRATION======")
     if page.status_code != 200:
@@ -114,13 +117,12 @@ def soup(dataLine):
         'Connection': 'keep-alive', 
     }
     #POST response form (data is brough to the target)
-    #TODO - Data needs to be sent here
     response = {
     '_session_key' :  session_key, #yanked from the webpage
     '_token' : token,  #yanked from the webpage
-    'name': 'ABC', 
-    'email':'abc123@ualmail.com', 
-    'profile[postal_code]': 'k5g2p1', 
+    'name': firstName + ' ' + lastName, 
+    'email': email, 
+    'profile[postal_code]': postalCode, 
     'password': 'P@ssw0rd', 
     'password_confirmation': 'P@ssw0rd', 
     'profile[user_region]' : '', 
