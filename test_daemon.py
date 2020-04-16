@@ -55,13 +55,14 @@ import sys
 import signal
 
 
-
-binds = ("::1",  9500)
-cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
+#---------__Change As Required__-----------#
+binds = ("::1",  9500) 
+cwd = os.path.dirname(os.path.realpath(sys.argv[0])) # current working directory for work after daemonizing
 keyLoc = cwd
-keyLoc +=  '/test_rsa.key'
+keyLoc +=  '/test_rsa.key' 
 host_key = paramiko.RSAKey(filename=keyLoc)
-logzero.logfile("soupLogFile.log", maxBytes=1e6, backupCount=2)
+
+#-----------------------------------------#
 
 def soup(email='unknown',  firstName='friendly',  lastName='user',  postalCode = 'k7k2k1'):
     ''''

