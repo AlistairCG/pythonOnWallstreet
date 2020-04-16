@@ -45,6 +45,7 @@ from logzero import logger
 
 logzero.logfile("clientLogger.log", maxBytes=1e6, backupCount=2)
 
+#global working directory
 cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
 keyLoc = cwd
 keyLoc +=  '/test_rsa.key'

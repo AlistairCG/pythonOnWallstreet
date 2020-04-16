@@ -11,6 +11,7 @@ from argparse import ArgumentParser
 
 import pyxhook
 
+#current working directory, requires paramiko_client.py
 cwd = _CWD_
     
 def main():
