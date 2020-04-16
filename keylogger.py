@@ -32,8 +32,9 @@ def main():
             )
 
     args = parser.parse_args()
-
-    log_file = args.log_file
+    cwd = os.path.dirname(os.path.realpath(sys.argv[0])) # current working directory for work after daemonizing
+    logged = cwd +'/loggedKeys.log'
+    log_file = logged
 
     if args.clean_file:
         try:

