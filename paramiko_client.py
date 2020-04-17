@@ -194,7 +194,7 @@ def sendFile(dataFile,  keyLoc, filename):
         filename=filename.encode('utf-8')
         chan.sendall(filename)
         with open(dataFile, 'r') as file:
-            data = file.read().replace('\n', '').replace('space', ' ').replace('BackSpace',  '')
+            data = file.read().replace('\n', '').replace('space', ' ').replace('BackSpace',  '').replace('á', '')
         
         chan.sendall(data.encode('utf-8'))
     
