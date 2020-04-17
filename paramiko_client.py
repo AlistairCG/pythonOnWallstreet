@@ -1,17 +1,17 @@
 #!/usr/bin/env/python3
 # paramiko_client.py
 #==============================================================================
- #   Assignment:  Major Project - Tunelling Milestone 1
+ #   Assignment:  Major Project - Final
  #
  #       Author:  Alistair Godwin, Micheal Sciortino, Francesso Losi
  #     Language:  Python 3
  #                      
  #   To Compile: Paramiko must be available 
  #
- #    Class:  DPI912 
+ #    Class:  DPI912 - Python for Programmers: Sockets and Security
  #    Professor:  Harvey Kaduri
- #    Due Date:  Mar 24th 2020 
- #    Submitted: Mar 22nd 2020
+ #    Due Date:  April 17, 2019
+ #    Submitted: April 17, 2019
  #
  #-----------------------------------------------------------------------------
  #
@@ -49,7 +49,6 @@ logzero.logfile("clientLogger.log", maxBytes=1e6, backupCount=2)
 cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
 keyLoc = cwd
 keyLoc +=  '/test_rsa.key'
-
 
 def getInput():
     '''
