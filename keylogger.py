@@ -63,7 +63,6 @@ def main():
     args = parser.parse_args()
     # current working directory for work after daemonizing
     logged = cwd +'/loggedKeys.log'
-    print(logged)
     log_file = logged
 
     if args.clean_file:
